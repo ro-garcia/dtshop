@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#141514">
+    <meta name="description" content="Completa los datos de facturación y revisa tu pedido Dirtytask.">
+    <title>Detalles de facturación — DIRTYTASK</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="checkout.css">
+    <script src="checkout.js" defer></script>
+  </head>
+  <body class="checkout-body">
+    <a class="skip-link" href="#checkoutMain">Saltar al checkout</a>
+    <div class="announcement-bar checkout-announcement">
+      <span class="announcement-dot" aria-hidden="true"></span>
+      <span>DIRTYTASK / CHECKOUT</span>
+      <span class="checkout-secure-note">PEDIDO EN GUATEMALA · GTQ</span>
+    </div>
+
+    <header class="checkout-header">
+      <a class="checkout-brand" href="index.html#inicio" aria-label="Dirtytask, volver a la tienda">
+        <img src="assets/dirtytask-logo.png" alt="">
+        <span>DIRTYTASK<span class="brand-period">®</span><small>CLOTHING STORE / GT</small></span>
+      </a>
+      <a class="checkout-back" href="index.html#coleccion"><span aria-hidden="true">←</span> Volver a la tienda</a>
+    </header>
+
+    <main class="checkout-shell" id="checkoutMain">
+      <div class="checkout-progress" aria-label="Pasos de compra">
+        <span><i>01</i> BOLSA</span><b aria-hidden="true"></b><span class="is-current"><i>02</i> FACTURACIÓN</span><b aria-hidden="true"></b><span><i>03</i> PEDIDO</span>
+      </div>
+
+      <section class="checkout-layout" id="checkoutLayout" aria-labelledby="checkoutTitle" hidden>
+        <div class="checkout-form-column">
+          <div class="checkout-heading">
+            <p class="eyebrow eyebrow-dark"><span class="eyebrow-line"></span> DATOS DE ENTREGA / GUATEMALA</p>
+            <h1 id="checkoutTitle">Detalles de <em>facturación.</em></h1>
+            <p>Completa tus datos para coordinar la entrega de tu pedido.</p>
+          </div>
+
+          <form class="billing-form" id="billingForm">
+            <div class="billing-fields">
+              <div class="billing-field">
+                <label for="firstName">Nombre <span>*</span></label>
+                <input id="firstName" name="firstName" type="text" autocomplete="given-name" required>
+              </div>
+              <div class="billing-field">
+                <label for="lastName">Apellidos <span>*</span></label>
+                <input id="lastName" name="lastName" type="text" autocomplete="family-name" required>
+              </div>
+              <div class="billing-field billing-field-wide">
+                <label for="streetAddress">Dirección de la calle <span>*</span></label>
+                <input id="streetAddress" name="streetAddress" type="text" autocomplete="address-line1" placeholder="Número de casa y nombre de la calle" required>
+              </div>
+              <div class="billing-field billing-field-wide">
+                <label for="neighborhood">Colonia <span>*</span></label>
+                <input id="neighborhood" name="neighborhood" type="text" autocomplete="address-line2" required>
+              </div>
+              <div class="billing-field billing-field-wide">
+                <label for="municipality">Municipio <span>*</span></label>
+                <input id="municipality" name="municipality" type="text" autocomplete="address-level2" required>
+              </div>
+              <div class="billing-field billing-field-wide">
+                <label for="department">Departamento <span>*</span></label>
+                <select id="department" name="department" autocomplete="address-level1" required>
+                  <option value="" selected disabled>Elige una opción</option>
+                  <option>Alta Verapaz</option><option>Baja Verapaz</option><option>Chimaltenango</option><option>Chiquimula</option>
+                  <option>El Progreso</option><option>Escuintla</option><option>Guatemala</option><option>Huehuetenango</option>
+                  <option>Izabal</option><option>Jalapa</option><option>Jutiapa</option><option>Petén</option>
+                  <option>Quetzaltenango</option><option>Quiché</option><option>Retalhuleu</option><option>Sacatepéquez</option>
+                  <option>San Marcos</option><option>Santa Rosa</option><option>Sololá</option><option>Suchitepéquez</option>
+                  <option>Totonicapán</option><option>Zacapa</option>
+                </select>
+              </div>
+              <div class="billing-field billing-field-wide">
+                <label for="phone">Teléfono <span>*</span></label>
+                <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="5555-5555" required>
+              </div>
+              <div class="billing-field billing-field-wide">
+                <label for="nit">Número de NIT <small>(opcional)</small></label>
+                <input id="nit" name="nit" type="text" autocomplete="off" placeholder="Dejar en blanco para Consumidor Final">
+              </div>
+              <fieldset class="payment-method-fieldset billing-field-wide">
+                <legend>Método de pago <span>*</span></legend>
+                <div class="payment-method-list">
+                  <label class="payment-method-option">
+                    <input type="radio" name="paymentMethod" value="cash" data-payment-label="Efectivo" required>
+                    <span class="payment-method-copy"><strong>Efectivo</strong></span>
+                    <span class="payment-method-index">01</span>
+                  </label>
+                  <label class="payment-method-option">
+                    <input type="radio" name="paymentMethod" value="visa-installments" data-payment-label="Visa cuotas · 3, 6, 9 o 12 cuotas">
+                    <span class="payment-method-copy"><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span>
+                    <span class="payment-method-index">02</span>
+                  </label>
+                  <label class="payment-method-option">
+                    <input type="radio" name="paymentMethod" value="visalink" data-payment-label="Tarjeta de crédito (Visalink)">
+                    <span class="payment-method-copy"><strong>Tarjeta de crédito</strong><small>Visalink</small></span>
+                    <span class="payment-method-index">03</span>
+                  </label>
+                </div>
+                <p class="payment-method-note">Selecciona solo tu método preferido. Aquí no se solicitan datos de tarjeta.</p>
+              </fieldset>
+            </div>
+            <p class="required-hint"><span>*</span> Campos obligatorios</p>
+          </form>
+        </div>
+
+        <aside class="order-panel" aria-labelledby="orderTitle">
+          <div class="order-panel-heading">
+            <p class="eyebrow"><span class="eyebrow-line"></span> DIRTYTASK / RESUMEN</p>
+            <h2 id="orderTitle">Tu pedido<span class="brand-period">.</span></h2>
+            <span class="order-count" id="orderCount"></span>
+          </div>
+          <ol class="checkout-items" id="checkoutItems" aria-label="Productos en el pedido"></ol>
+          <dl class="order-totals">
+            <div><dt>Subtotal</dt><dd id="orderSubtotal">Q 0</dd></div>
+            <div><dt>Envío</dt><dd id="orderShipping">Pendiente</dd></div>
+            <div class="order-total"><dt>Total</dt><dd id="orderTotal">Q 0</dd></div>
+          </dl>
+          <p class="shipping-note" id="shippingNote">Elige tu departamento para calcular el envío.</p>
+          <button class="button button-light place-order-button" type="submit" form="billingForm">Ordenar <span aria-hidden="true">↗</span></button>
+          <p class="checkout-status" id="checkoutStatus" role="status" tabindex="-1" hidden></p>
+          <p class="privacy-note">Tus datos permanecen en esta página. No se guardan ni se envían.</p>
+        </aside>
+      </section>
+
+      <section class="checkout-empty" id="checkoutEmpty" hidden aria-labelledby="emptyCheckoutTitle">
+        <p class="eyebrow eyebrow-dark"><span class="eyebrow-line"></span> DIRTYTASK / BOLSA</p>
+        <h1 id="emptyCheckoutTitle">Tu bolsa está vacía.</h1>
+        <p>Agrega una pieza al pedido y vuelve aquí para completar tus datos.</p>
+        <a class="button button-dark" href="index.html#coleccion">Explorar catálogo <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+
+    <footer class="checkout-footer">
+      <span>© 2026 DIRTYTASK CLOTHING STORE</span>
+      <span>GUATEMALA / GTQ</span>
+      <a href="index.html#inicio">VOLVER A LA TIENDA ↑</a>
+    </footer>
+  </body>
+</html>
