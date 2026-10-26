@@ -95,7 +95,7 @@
     contact.href = "https://www.instagram.com/dirtytask/?hl=es";
     contact.target = "_blank";
     contact.rel = "noopener noreferrer";
-    contact.textContent = "Abrir Instagram de Dirtytask ↗";
+    contact.textContent = "Abrir Instagram de Dirtytask";
     status.append(contact);
     status.hidden = false;
     status.focus();

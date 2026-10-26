@@ -440,7 +440,7 @@
     document.getElementById("dialogProductDescription").textContent = product.description;
     document.getElementById("selectedSizeLabel").textContent = "—";
     addToBagButton.disabled = true;
-    addToBagButton.innerHTML = "Elige " + (product.variantName === "talla" ? "una talla" : "una variante") + " <span aria-hidden=\"true\">↗</span>";
+    addToBagButton.textContent = "Elige " + (product.variantName === "talla" ? "una talla" : "una variante");
     document.getElementById("variantLegend").firstChild.nodeValue = product.variantName === "talla" ? "Elige talla " : "Elige variante ";
     sizeOptions.innerHTML = product.variants.map((size) => '<button class="size-option" type="button" aria-pressed="false" data-size-choice="' + size + '">' + size + '</button>').join("");
     productDialog.showModal();
@@ -463,7 +463,7 @@
     sizeOptions.querySelectorAll("[data-size-choice]").forEach((option) => option.setAttribute("aria-pressed", String(option === button)));
     document.getElementById("selectedSizeLabel").textContent = activeSize;
     addToBagButton.disabled = false;
-    addToBagButton.innerHTML = (products[activeProduct].preorder ? "Reservar · " : "Añadir a la bolsa · ") + money(products[activeProduct].price) + " <span aria-hidden=\"true\">↗</span>";
+    addToBagButton.textContent = (products[activeProduct].preorder ? "Reservar · " : "Añadir a la bolsa · ") + money(products[activeProduct].price);
   });
   addToBagButton.addEventListener("click", () => {
     if (!activeProduct || !activeSize) return;
