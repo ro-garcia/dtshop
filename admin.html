@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11110f">
+  <title>Admin · Dirtytask</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+   <link rel="stylesheet" href="styles.css">
+  <script src="admin.js" defer></script>
+</head>
+<body class="admin-body">
+  <main class="login-screen" id="loginScreen">
+    <a class="login-brand" href="index.html" aria-label="Dirtytask, volver a la tienda">
+      <img src="assets/dirtytask-flame-d-transparent.png" alt="">
+      <span>DIRTYTASK<small>CONTROL DE TIENDA / GT</small></span>
+    </a>
+    <section class="login-card" aria-labelledby="loginTitle">
+      <p class="admin-kicker"><i></i> PANEL DE ADMINISTRACIÓN</p>
+      <h1 id="loginTitle">Control de<br><em>la tienda.</em></h1>
+      <p class="login-copy">Administra catálogo, lanzamientos y contenido desde un solo lugar.</p>
+      <form id="loginForm">
+        <label for="loginEmail">Correo de demostración</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="off" placeholder="demo@dirtytask.local" required>
+        <label for="loginPassword">Clave de demostración</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="off" placeholder="Cualquier clave de prueba" required>
+        <button class="admin-button admin-button-dark login-submit" type="submit">Entrar al panel</button>
+        <p class="login-error" id="loginError" role="alert" hidden></p>
+      </form>
+      <div class="demo-notice" id="demoNotice"><strong>Vista de demostración local.</strong> El sitio actual no tiene un servidor de autenticación. Aquí no se valida ni se guarda tu contraseña; no uses credenciales reales.</div>
+      <a class="login-return" href="index.html">Volver a Dirtytask Store</a>
+    </section>
+    <p class="login-foot">DIRTYTASK CLOTHING STORE <span>·</span> GUATEMALA / 502</p>
+  </main>
+
+  <div class="admin-layout" id="adminApp" hidden>
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="index.html" aria-label="Dirtytask, abrir tienda">
+        <img src="assets/dirtytask-flame-d-transparent.png" alt="">
+        <span>DIRTYTASK<small>STORE ADMIN</small></span>
+      </a>
+      <div class="sidebar-label">GESTIÓN</div>
+      <nav class="admin-nav" aria-label="Secciones de administración">
+        <button class="admin-nav-item is-active" type="button" data-view="overview"><span class="nav-icon">◫</span>Resumen</button>
+        <button class="admin-nav-item" type="button" data-view="products"><span class="nav-icon">▦</span>Productos <span class="nav-count" id="productCount">0</span></button>
+        <button class="admin-nav-item" type="button" data-view="drops"><span class="nav-icon">✳</span>Lanzamientos <span class="nav-count" id="dropCount">0</span></button>
+        <button class="admin-nav-item" type="button" data-view="stats"><span class="nav-icon">▥</span>Estadísticas</button>
+        <button class="admin-nav-item" type="button" data-view="orders"><span class="nav-icon">▤</span>Pedidos <span class="nav-count">0</span></button>
+        <button class="admin-nav-item" type="button" data-view="accounting"><span class="nav-icon">❈</span>Contabilidad</button>
+        <button class="admin-nav-item" type="button" data-view="content"><span class="nav-icon">▧</span>Contenido</button>
+        <button class="admin-nav-item" type="button" data-view="settings"><span class="nav-icon">⚙</span>Configuración</button>
+      </nav>
+      <div class="sidebar-bottom">
+       <!----> <span class="demo-pill"><i></i>Servicios Activos</span>
+        <button class="sidebar-logout" id="logoutButton" type="button">Cerrar sesión</button>
+        <a href="index.html">Volver a la tienda</a>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="topbar-overline"></p><h2 id="viewTitle">Resumen</h2></div>
+        <div class="topbar-actions"><span class="local-state"><i></i> Bienvenido: </span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" type="button" aria-label="Cuenta de demostración">DT</button></div>
+      </header>
+
+      <section class="admin-view" id="view-overview">
+        <div class="welcome-row"><div><p class="admin-kicker">LUNES <span id="todayDate"></span> · GTQ</p><h1>BIENVENIDO DE NUEVO ,<br><em>A SEGUIR ROMPIENDOLA!</em></h1><p>Panel administrativo para la gestión de la tienda.</p></div><a class="admin-button admin-button-dark" href="index.html" target="_blank" rel="noopener">ver la tienda</a></div>
+        <div class="metric-grid">
+          <article class="metric-card"><span>PRODUCTOS ACTIVOS</span><strong id="metricProducts">0</strong><small>en el catálogo</small><i class="metric-mark">01</i></article>
+          <article class="metric-card"><span>LANZAMIENTOS ACTIVOS</span><strong id="metricDrops">0</strong><small>reservas abiertas</small><i class="metric-mark">02</i></article>
+          <article class="metric-card"><span>PEDIDOS RECIBIDOS</span><strong id="metricOrders">0</strong><small>recibidos por la tienda</small><i class="metric-mark">03</i></article>
+          <article class="metric-card metric-card-red"><span>INVENTARIO TOTAL</span><strong id="metricInventory">—</strong><small>unidades por registrar</small><i class="metric-mark">04</i></article>
+        </div>
+        <div class="overview-grid">
+          <article class="admin-panel overview-products"><div class="panel-heading"><div><p class="admin-kicker">CATÁLOGO / 01</p><h3>Recién agregados</h3></div><button class="text-button" data-open-view="products" type="button">Ver todo</button></div><div class="mini-product-list" id="recentProducts"></div></article>
+          <article class="admin-panel overview-drops"><div class="panel-heading"><div><p class="admin-kicker">CALENDARIO / 02</p><h3>Próximos drops</h3></div><button class="text-button" data-open-view="drops" type="button">Ver </button></div><div class="drop-overview-list" id="recentDrops"></div></article>
+        </div>
+    
+      </section>
+
+      <section class="admin-view" id="view-products" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">INVENTARIO / CATÁLOGO</p><h1>Productos<span>.</span></h1><p>Precios, tallas, imágenes y visibilidad en la tienda.</p></div><button class="admin-button admin-button-dark" id="addProductButton" type="button">＋ Nuevo producto</button></div>
+        <div class="admin-toolbar"><label class="admin-search"><span>⌕</span><input id="productSearchAdmin" type="search" placeholder="Buscar por nombre, marca o categoría"></label><select id="productStatusFilter" aria-label="Filtrar por estado"><option value="all">Todos los estados</option><option value="active">Activos</option><option value="draft">Borradores</option><option value="archived">Archivados</option></select><span class="toolbar-count" id="productTableCount">0 productos</span></div>
+        <div class="table-wrap"><table class="admin-table"><thead><tr><th>PRODUCTO</th><th>CATEGORÍA</th><th>PRECIO</th><th>STOCK</th><th>ESTADO</th><th></th></tr></thead><tbody id="productTableBody"></tbody></table></div>
+      </section>
+
+      <section class="admin-view" id="view-stats" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">ANÁLISIS / CATÁLOGO</p><h1>Estadísticas<span>.</span></h1><p>Actividad del catálogo y lanzamientos guardados.</p></div></div>
+        <div class="stats-kpi-grid">
+          <article class="stats-kpi"><span>EN CATÁLOGO</span><strong id="statsPublished">0</strong><small>productos visibles</small></article>
+          <article class="stats-kpi"><span>BORRADORES</span><strong id="statsDrafts">0</strong><small>productos por preparar</small></article>
+          <article class="stats-kpi"><span>INVENTARIO REGISTRADO</span><strong id="statsInventory">0</strong><small>unidades en productos activos</small></article>
+          <article class="stats-kpi stats-kpi-dark"><span>PRECIO PROMEDIO</span><strong id="statsAveragePrice">Q 0</strong><small>productos publicados</small></article>
+        </div>
+        <div class="stats-grid">
+          <article class="admin-panel stats-panel">
+            <div class="panel-heading"><div><p class="admin-kicker">PRODUCTOS / 01</p><h3>Catálogo por categoría</h3></div><span class="stats-caption">PUBLICADOS</span></div>
+            <div class="stats-category-list" id="statsCategoryList"></div>
+          </article>
+          <article class="admin-panel stats-panel">
+            <div class="panel-heading"><div><p class="admin-kicker">ESTADO / 02</p><h3>Estado del catálogo</h3></div><span class="stats-caption">TODOS</span></div>
+            <div class="stats-status-list" id="statsStatusList"></div>
+          </article>
+          <article class="admin-panel stats-panel stats-launch-panel">
+            <div class="panel-heading"><div><p class="admin-kicker">CALENDARIO / 03</p><h3>Lanzamientos</h3></div><button class="text-button" data-open-view="drops" type="button">Ver lanzamientos</button></div>
+            <div class="stats-launch-list" id="statsLaunchList"></div>
+          </article>
+        </div>
+       
+      </section>
+
+      <section class="admin-view" id="view-drops" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">RESERVAS / CALENDARIO</p><h1>Lanzamientos<span>.</span></h1><p>Gestiona las fechas de salida, llegada a Guatemala y modelos incluidos.</p></div><button class="admin-button admin-button-dark" id="addDropButton" type="button">＋ Nuevo lanzamiento</button></div>
+        <div class="drop-admin-list" id="dropAdminList"></div>
+      </section>
+
+      <section class="admin-view" id="view-orders" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">VENTAS / RESERVAS</p><h1>Pedidos<span>.</span></h1><p>Pedidos recibidos desde la tienda y solicitudes de reserva.</p></div></div>
+        <div class="orders-summary"><article class="admin-panel"><span>POR CONFIRMAR</span><strong>0</strong></article><article class="admin-panel"><span>EN PREPARACIÓN</span><strong>0</strong></article><article class="admin-panel"><span>ENTREGADOS</span><strong>0</strong></article></div>
+        <div class="empty-admin"><span class="empty-admin-icon">▤</span><h2>Aún no hay pedidos conectados.</h2><p>El checkout del sitio es una maqueta y no envía formularios ni datos de facturación. Aquí aparecerán los pedidos cuando se conecte un backend.</p></div>
+      </section>
+
+      <section class="admin-view" id="view-content" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">HOME / REDES SOCIALES</p><h1>Contenido<span>.</span></h1><p>Actualiza el mensaje de la pagina principal y los videos del feed.</p></div><button class="admin-button admin-button-dark" id="saveContentButton" type="button">Guardar contenido</button></div>
+        <div class="content-grid">
+          <form class="admin-panel content-form" id="contentForm"><div class="panel-heading"><div><p class="admin-kicker">PORTADA / 01</p><h3>Mensaje de la tienda</h3></div></div><label>Texto principal<textarea name="heroCopy" rows="3" maxlength="240"></textarea></label><label>Texto de contenido<textarea name="feedCopy" rows="2" maxlength="140"></textarea></label><label>Instagram de Dirtytask<input name="instagramUrl" type="url"></label><label>TikTok de Dirtytask<input name="tiktokUrl" type="url"></label></form>
+          <div class="admin-panel content-videos"><div class="panel-heading"><div><p class="admin-kicker">REDES / 02</p><h3>Videos del feed</h3></div><button class="text-button" id="addVideoButton" type="button">＋ Añadir</button></div><div id="videoList"></div><p class="field-hint">Pegar el enlace público de un video de TikTok o Reel de Instagram.</p></div>
+        </div>
+      </section>
+
+      <section class="admin-view" id="view-settings" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">OPERACIÓN / PREFERENCIAS</p><h1>Configuración<span>.</span></h1><p>Envíos, métodos de pago y opciones de publicación.</p></div><button class="admin-button admin-button-dark" id="saveSettingsButton" type="button">Guardar cambios</button></div>
+        <div class="settings-grid">
+          <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="1" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="1" required></span></label><p class="field-hint">Se aplican al total del checkout cuando se elige el departamento.</p></form>
+          <form class="admin-panel settings-form" id="paymentForm"><div class="panel-heading"><div><p class="admin-kicker">CHECKOUT / PAGO</p><h3>Métodos disponibles</h3></div></div><label class="toggle-row"><span><strong>Efectivo</strong><small>Pago contra entrega</small></span><input name="cash" type="checkbox"></label><label class="toggle-row"><span><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span><input name="visaInstallments" type="checkbox"></label><label class="toggle-row"><span><strong>Tarjeta de crédito</strong><small>Visalink</small></span><input name="visalink" type="checkbox"></label><p class="field-hint">Esta maqueta solo permite seleccionar un método; no procesa pagos.</p></form>
+          <div class="admin-panel settings-meta"><div class="panel-heading"><div><p class="admin-kicker">TIENDA / IDENTIDAD</p><h3>Dirtytask Clothing Store</h3></div></div><p>Guatemala <span>GT / 502</span></p><p>Moneda <span>GTQ</span></p><p>Checkout <span class="status-pill status-warning">DEMO</span></p></div>
+        </div>
+      </section>
+
+    <section class="admin-view" id="view-accounting" hidden>
+      <div class="view-intro"><div><p class="admin-kicker">CERRAR SESIÓN</p><h1>Salir del panel<span>.</span></h1><p>Se cerrará la sesión de administración y volverás a la tienda.</p></div><button class="admin-button admin-button-dark" id="logoutConfirmButton" type="button">Cerrar sesión</button></div>
+      <div class="accounting-grid">
+        <div class="admin-panel accounting-panel"><div class="panel-heading"><div><p class="admin-kicker">CONTABILIDAD / 01</p><h3>Resumen de ventas</h3></div></div><p>Esta maqueta no procesa pagos ni genera facturas. Aquí se mostraría un resumen de ventas y contabilidad.</p></div>
+        <div class="admin-panel accounting-panel"><div class="panel-heading"><div><p class="admin-kicker">FACTURACIÓN / 02</p><h3>Documentos fiscales</h3></div></div><p>En un sitio real, aquí se podrían descargar facturas y reportes de ventas.</p></div>
+      </div>
+    </section>
+
+
+
+
+
+    </main>
+  </div>
+
+ <footer class="site-footer">
+      
+
+      <div class="footer-content">
+        <div class="footer-newsletter">
+          <p class="footer-overline">FRASE DEL DIA:</p>
+          <h2>*************************************.<br>*******************</h2>
+
+          <!--Frase: desde aqui empieza la parte de la frase-->
+
+          
+         
+        </div>
+        
+        </div>
+      </div>
+
+      <a class="footer-wordmark" href="#inicio" aria-label="Dirtytask, volver al inicio">
+        <img src="assets/dirtytask-flame-d-transparent.png" alt="">
+        <span>irtytask</span>
+      </a>
+
+      <div class="footer-bottom"><span>© 2026 DIRTYTASK CLOTHING STORE</span><a class="back-top" href="#inicio">VOLVER ARRIBA</a></div>
+    </footer>
+
+
+
+  
+
+  <dialog class="editor-dialog" id="editorDialog" aria-labelledby="editorTitle">
+    <form id="editorForm" method="dialog">
+      <div class="editor-heading"><div><p class="admin-kicker" id="editorKicker">CATÁLOGO / EDICIÓN</p><h2 id="editorTitle">Editar producto</h2></div><button class="editor-close" type="button" id="closeEditor" aria-label="Cerrar">×</button></div>
+      <div class="editor-fields" id="editorFields"></div>
+      <div class="editor-footer"><button class="admin-button admin-button-quiet" type="button" id="deleteEntryButton" hidden>Archivar</button><span></span><button class="admin-button admin-button-quiet" type="button" id="cancelEditor">Cancelar</button><button class="admin-button admin-button-dark" type="submit">Guardar</button></div>
+      <p class="editor-message" id="editorMessage" role="alert" hidden></p>
+    </form>
+  </dialog>
+</body>
+</html>
