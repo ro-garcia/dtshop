@@ -14,7 +14,7 @@
   const ATTEMPT_KEY = 'dirtytask-checkout-attempt';
   const RECEIPT_KEY = 'dirtytask-checkout-receipt';
   // Configura el numero receptor con codigo de pais, solo digitos (ej.: 502XXXXXXXX).
-  const WHATSAPP_PHONE = '50231321854';
+  const WHATSAPP_PHONE = '50234409484';
   const money = cents => new Intl.NumberFormat('es-GT', {style:'currency',currency:data.settings.currency,maximumFractionDigits:2}).format(cents/100);
   const node = (tag, text, className) => {
     const element = document.createElement(tag);
