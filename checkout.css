@@ -201,3 +201,10 @@
  .receipt-next { grid-template-columns: 1fr 2fr; }
  .receipt-state { print-color-adjust: exact; }
 }
+
+/* Enlace para compartir el pedido registrado por WhatsApp */
+.receipt-whatsapp { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:12px 18px; background:#177a45; border:1px solid #177a45; color:#fff; text-decoration:none; font:600 11px/1.4 var(--sans); }
+.receipt-whatsapp:hover { background:#126139; }
+.receipt-whatsapp:focus-visible { outline:2px solid #177a45; outline-offset:4px; }
+.receipt-whatsapp-hint { width:100%; margin:0; color:#765e26; font:11px/1.5 var(--sans); }
+@media print { .receipt-whatsapp, .receipt-whatsapp-hint { display:none !important; } }

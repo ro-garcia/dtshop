@@ -13,6 +13,8 @@
   let loading = false;
   const ATTEMPT_KEY = 'dirtytask-checkout-attempt';
   const RECEIPT_KEY = 'dirtytask-checkout-receipt';
+  // Configura el numero receptor con codigo de pais, solo digitos (ej.: 502XXXXXXXX).
+  const WHATSAPP_PHONE = '50231321854';
   const money = cents => new Intl.NumberFormat('es-GT', {style:'currency',currency:data.settings.currency,maximumFractionDigits:2}).format(cents/100);
   const node = (tag, text, className) => {
     const element = document.createElement(tag);
@@ -52,7 +54,7 @@
         // An interrupted response may have committed. Reuse the same request on every retry.
         try {receipt=await window.checkoutApi.receipt(requestId);} catch {throw error;}
       }
-      showConfirmation(receipt,requestId,payload);
+      showConfirmation(receipt,requestId,payload,true);
     } catch(error) {
       status.textContent='No se pudo confirmar el envío. '+(error.message||'Reintenta con el mismo pedido.');status.focus();
       status.after($('#retryCheckout'));
@@ -172,7 +174,41 @@
   }finally{loading=false;$('#retryCheckout').disabled=false;$('#retryCheckout').textContent='Revisar disponibilidad';}
   }
   await loadCheckout();
-  function showConfirmation(receipt,requestId,submitted) {
+  function whatsappOrderUrl(receipt, submitted) {
+    const phone = WHATSAPP_PHONE.replace(/\D/g, '');
+    if (!/^\d{10,15}$/.test(phone)) return null;
+    const format = cents => new Intl.NumberFormat('es-GT', {style:'currency',currency:receipt.currency || 'GTQ'}).format(Number(cents)/100);
+    const name = receipt.customer_name || [submitted?.first_name, submitted?.last_name].filter(Boolean).join(' ') || 'No especificado';
+    const labels = {cash:'Efectivo contra entrega',visa_installments:'Visa cuotas',visalink:'Tarjeta de credito (Visalink)'};
+    const payment = receipt.payment_method_code || submitted?.payment_method;
+    const installments = receipt.installment_count || submitted?.installments;
+    const lines = receipt.lines.map((line, index) => {
+      const unit = Number(line.unit_price_cents);
+      const price = Number.isFinite(unit) ? `\n*Precio unitario:* ${format(unit)}\n*Importe:* ${format(unit*line.qty)}` : '';
+      return `${index+1}. ${line.qty}x *${line.product_name || 'Producto'}*\n*Talla:* ${line.variant_label || 'No especificada'}${line.preorder ? ' (Reserva)' : ''}${price}`;
+    }).join('\n\n');
+    const fields = [
+      '*NUEVO PEDIDO - DIRTYTASK*',
+      `*Pedido:* #${receipt.id.replace(/-/g,'').slice(-12)}`,
+      '', '*PRODUCTOS*', lines,
+      '', `*Subtotal:* ${format(receipt.subtotal_cents)}`,
+      `*Envio:* ${format(receipt.shipping_cents)}`,
+      '', '*DATOS DEL CLIENTE*',
+      `*Nombre:* ${name}`,
+      `*Telefono:* ${receipt.phone || submitted?.phone || 'No especificado'}`,
+      `*Direccion:* ${receipt.street_address || submitted?.street || 'No especificada'}`,
+      `*Colonia:* ${receipt.neighborhood || submitted?.neighborhood || 'No especificada'}`,
+      `*Municipio:* ${receipt.municipality || submitted?.municipality || 'No especificado'}`,
+      `*Departamento:* ${receipt.department || submitted?.department || 'No especificado'}`,
+      `*NIT:* ${receipt.nit || submitted?.nit || 'CF'}`,
+      `*Metodo de pago:* ${labels[payment] || payment || 'No especificado'}${installments ? ` (${installments} cuotas)` : ''}`,
+      '', `*TOTAL: ${format(receipt.total_cents)}*`,
+      '', 'Hola, deseo confirmar este pedido. Gracias.'
+    ];
+    return `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(fields.join('\n'))}&type=phone_number&app_absent=0`;
+  }
+
+  function showConfirmation(receipt,requestId,submitted,redirectToWhatsapp=false) {
     if(!receipt?.id || !Array.isArray(receipt.lines))throw new Error('La tienda no devolvió una confirmación válida. Reintenta para consultar tu pedido.');
     completed=true;ready=false;button.disabled=true;
     const box=$('#orderConfirmation');
@@ -217,10 +253,23 @@
     const nextCopy=node('div',undefined,'receipt-next-copy');nextCopy.append(node('h2',message[1]),node('p',message[2]));
     next.append(nextLabel,nextCopy);box.append(next);
     const foot=node('footer',undefined,'receipt-footer');
-    const actions=node('div',undefined,'receipt-actions');const print=node('button','Imprimir comprobante','receipt-print');print.type='button';print.addEventListener('click',()=>window.print());const shop=node('a','Volver a la tienda','receipt-shop');shop.href='index.html#coleccion';const arrow=node('span','↗');arrow.setAttribute('aria-hidden','true');shop.append(arrow);actions.append(print,shop);foot.append(actions);box.append(foot);
+    const actions=node('div',undefined,'receipt-actions');const print=node('button','Imprimir comprobante','receipt-print');print.type='button';print.addEventListener('click',()=>window.print());const shop=node('a','Volver a la tienda','receipt-shop');shop.href='index.html#coleccion';const arrow=node('span','↗');arrow.setAttribute('aria-hidden','true');shop.append(arrow);const whatsappUrl=receipt.status!=='cancelled' ? whatsappOrderUrl(receipt,submitted) : null;
+    if (whatsappUrl) {
+      const whatsapp=node('a','Enviar pedido por WhatsApp','receipt-whatsapp');
+      whatsapp.href=whatsappUrl;
+      whatsapp.rel='noopener noreferrer';
+      whatsapp.setAttribute('aria-label','Abrir WhatsApp con el detalle del pedido');
+      actions.append(whatsapp);
+    } else if (receipt.status!=='cancelled') {
+      const hint=node('p','Para activar WhatsApp, configura WHATSAPP_PHONE en checkout.js.','receipt-whatsapp-hint');
+      actions.append(hint);
+    }
+    actions.append(print,shop);foot.append(actions);box.append(foot);
     document.querySelectorAll('.checkout-progress > span').forEach((step,index)=>{step.classList.toggle('is-current',index===2);if(index===2)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current');});
     $('#checkoutLayout').hidden=true;$('#checkoutEmpty').hidden=true;loadStatus.textContent='';$('#retryCheckout').hidden=true;
     box.hidden=false;box.focus();form.reset();
+    // Solo redirigir tras registrar un pedido nuevo, no al recuperar un comprobante anterior.
+    if (redirectToWhatsapp && whatsappUrl) window.location.assign(whatsappUrl);
     try {
       // Subtract only purchased lines; preserve anything added in another tab.
       for(const [storage,key] of [[localStorage,'dirtytask-cart'],[sessionStorage,'dirtytask-checkout-order']]) {
