@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="checkout.css">
+    <script src="supabase-config.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.js" defer></script>
+    <script src="storefront-api.js" defer></script>
     <script src="checkout.js" defer></script>
   </head>
   <body class="checkout-body">
@@ -34,6 +37,8 @@
         <span><i>01</i> BOLSA</span><b aria-hidden="true"></b><span class="is-current"><i>02</i> FACTURACIÓN</span><b aria-hidden="true"></b><span><i>03</i> PEDIDO</span>
       </div>
 
+      <p id="checkoutLoadStatus" role="status">Consultando precios y envío…</p>
+      <button id="retryCheckout" class="text-link" type="button" hidden>Reintentar</button>
       <section class="checkout-layout" id="checkoutLayout" aria-labelledby="checkoutTitle" hidden>
         <div class="checkout-form-column">
           <div class="checkout-heading">
@@ -67,13 +72,7 @@
               <div class="billing-field billing-field-wide">
                 <label for="department">Departamento <span>*</span></label>
                 <select id="department" name="department" autocomplete="address-level1" required>
-                  <option value="" selected disabled>Elige una opción</option>
-                  <option>Alta Verapaz</option><option>Baja Verapaz</option><option>Chimaltenango</option><option>Chiquimula</option>
-                  <option>El Progreso</option><option>Escuintla</option><option>Guatemala</option><option>Huehuetenango</option>
-                  <option>Izabal</option><option>Jalapa</option><option>Jutiapa</option><option>Petén</option>
-                  <option>Quetzaltenango</option><option>Quiché</option><option>Retalhuleu</option><option>Sacatepéquez</option>
-                  <option>San Marcos</option><option>Santa Rosa</option><option>Sololá</option><option>Suchitepéquez</option>
-                  <option>Totonicapán</option><option>Zacapa</option>
+                  <option value="" selected disabled>Cargando departamentos…</option>
                 </select>
               </div>
               <div class="billing-field billing-field-wide">
@@ -86,23 +85,7 @@
               </div>
               <fieldset class="payment-method-fieldset billing-field-wide">
                 <legend>Método de pago <span>*</span></legend>
-                <div class="payment-method-list">
-                  <label class="payment-method-option">
-                    <input type="radio" name="paymentMethod" value="cash" data-payment-label="Efectivo" required>
-                    <span class="payment-method-copy"><strong>Efectivo</strong></span>
-                    <span class="payment-method-index">01</span>
-                  </label>
-                  <label class="payment-method-option">
-                    <input type="radio" name="paymentMethod" value="visa-installments" data-payment-label="Visa cuotas · 3, 6, 9 o 12 cuotas">
-                    <span class="payment-method-copy"><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span>
-                    <span class="payment-method-index">02</span>
-                  </label>
-                  <label class="payment-method-option">
-                    <input type="radio" name="paymentMethod" value="visalink" data-payment-label="Tarjeta de crédito (Visalink)">
-                    <span class="payment-method-copy"><strong>Tarjeta de crédito</strong><small>Visalink</small></span>
-                    <span class="payment-method-index">03</span>
-                  </label>
-                </div>
+                <div class="payment-method-list"></div>
                 <p class="payment-method-note">Selecciona solo tu método preferido. Aquí no se solicitan datos de tarjeta.</p>
               </fieldset>
             </div>
@@ -123,7 +106,7 @@
             <div class="order-total"><dt>Total</dt><dd id="orderTotal">Q 0</dd></div>
           </dl>
           <p class="shipping-note" id="shippingNote">Elige tu departamento para calcular el envío.</p>
-          <button class="button button-light place-order-button" type="submit" form="billingForm">Ordenar</button>
+          <button class="button button-light place-order-button" type="submit" form="billingForm" disabled>Consultar disponibilidad</button>
           <p class="checkout-status" id="checkoutStatus" role="status" tabindex="-1" hidden></p>
           <p class="privacy-note">Tus datos permanecen en esta página. No se guardan ni se envían.</p>
         </aside>

@@ -15,6 +15,7 @@
   <script src="supabase-config.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.js" defer></script>
   <script src="catalog-api.js" defer></script>
+  <script src="store-api.js" defer></script>
   <script src="admin.js" defer></script>
   <script src="admin-auth.js" defer></script>
   <script src="accounting-data.js" defer></script>
@@ -75,7 +76,7 @@
         <div><p class="topbar-overline"></p><h2 id="viewTitle">Resumen</h2></div>
         <div class="topbar-actions"><span class="local-state"><i></i> <span id="welcomeName">Bienvenido</span></span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" id="accountAvatar" type="button" aria-label="Editar usuario">DT</button></div>
       </header>
-      <p class="auth-data-notice">Sesión real de Supabase · Catálogo, ventas y contabilidad en demostración; todavía no se sincronizan.</p>
+      <div class="auth-data-notice"><p id="catalogLoadStatus" role="status">Catálogo pendiente de carga.</p><button id="refreshCatalog" class="admin-button admin-button-quiet" type="button">Actualizar catálogo</button><p>Catálogo conectado a Supabase · Ventas y contabilidad en demostración.</p></div>
 
       <section class="admin-view" id="view-overview">
         <div class="welcome-row"><div><p class="admin-kicker">LUNES <span id="todayDate"></span> · GTQ</p><h1>BIENVENIDO DE NUEVO ,<br><em>A SEGUIR ROMPIENDOLA!</em></h1><p>Panel administrativo para la gestión de la tienda.</p></div><a class="admin-button admin-button-dark" href="index.html" target="_blank" rel="noopener">ver la tienda</a></div>
@@ -135,6 +136,7 @@
       </section>
 
       <section class="admin-view" id="view-content" hidden>
+        <div class="auth-data-notice"><p id="contentLoadStatus" role="status">Contenido pendiente de carga.</p><button id="refreshContent" type="button" class="admin-button admin-button-quiet">Actualizar contenido</button></div>
         <div class="view-intro"><div><p class="admin-kicker">HOME / REDES SOCIALES</p><h1>Contenido<span>.</span></h1><p>Actualiza el mensaje de la pagina principal y los videos del feed.</p></div><button class="admin-button admin-button-dark" id="saveContentButton" type="button">Guardar contenido</button></div>
         <div class="content-grid">
           <form class="admin-panel content-form" id="contentForm"><div class="panel-heading"><div><p class="admin-kicker">PORTADA / 01</p><h3>Mensaje de la tienda</h3></div></div><label>Texto principal<textarea name="heroCopy" rows="3" maxlength="240"></textarea></label><label>Texto de contenido<textarea name="feedCopy" rows="2" maxlength="140"></textarea></label><label>Instagram de Dirtytask<input name="instagramUrl" type="url"></label><label>TikTok de Dirtytask<input name="tiktokUrl" type="url"></label></form>
@@ -143,6 +145,7 @@
       </section>
 
       <section class="admin-view" id="view-settings" hidden>
+        <div class="auth-data-notice"><p id="settingsLoadStatus" role="status">Configuración pendiente de carga.</p><button id="refreshSettings" type="button" class="admin-button admin-button-quiet">Actualizar configuración</button></div>
         <div class="view-intro"><div><p class="admin-kicker">OPERACIÓN / PREFERENCIAS</p><h1>Configuración<span>.</span></h1><p>Usuario de la tienda, envíos y métodos de pago.</p></div><button class="admin-button admin-button-dark" id="saveSettingsButton" type="button">Guardar cambios</button></div>
         <div class="settings-grid">
           <form class="admin-panel profile-panel" id="profileForm">
@@ -158,7 +161,7 @@
             </div>
             <p class="field-hint">Este nombre y esta imagen identifican la sesión del panel en este navegador.</p>
           </form>
-          <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="1" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="1" required></span></label><p class="field-hint">Se aplican al total del checkout cuando se elige el departamento.</p></form>
+          <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="0.01" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="0.01" required></span></label><p class="field-hint">Guarda las tarifas en Supabase con el botón Guardar cambios. El checkout público todavía requiere integración.</p></form>
           <form class="admin-panel settings-form" id="paymentForm"><div class="panel-heading"><div><p class="admin-kicker">CHECKOUT / PAGO</p><h3>Métodos disponibles</h3></div></div><label class="toggle-row"><span><strong>Efectivo</strong><small>Pago contra entrega</small></span><input name="cash" type="checkbox"></label><label class="toggle-row"><span><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span><input name="visaInstallments" type="checkbox"></label><label class="toggle-row"><span><strong>Tarjeta de crédito</strong><small>Visalink</small></span><input name="visalink" type="checkbox"></label><p class="field-hint">Esta maqueta solo permite seleccionar un método; no procesa pagos.</p></form>
           <div class="admin-panel settings-meta"><div class="panel-heading"><div><p class="admin-kicker">TIENDA / IDENTIDAD</p><h3>Dirtytask Clothing Store</h3></div></div><p>Guatemala <span>GT / 502</span></p><p>Moneda <span>GTQ</span></p><p>Checkout <span class="status-pill status-warning">DEMO</span></p></div>
         </div>

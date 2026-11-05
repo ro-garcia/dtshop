@@ -1,103 +1,104 @@
-(() => {
-  const layout = document.getElementById("checkoutLayout");
-  const emptyState = document.getElementById("checkoutEmpty");
-  const itemsElement = document.getElementById("checkoutItems");
-  const subtotalElement = document.getElementById("orderSubtotal");
-  const shippingElement = document.getElementById("orderShipping");
-  const totalElement = document.getElementById("orderTotal");
-  const countElement = document.getElementById("orderCount");
-  const departmentSelect = document.getElementById("department");
-  const shippingNote = document.getElementById("shippingNote");
-  const form = document.getElementById("billingForm");
-  const status = document.getElementById("checkoutStatus");
-  const money = (value) => "Q " + new Intl.NumberFormat("es-GT", { maximumFractionDigits: 0 }).format(value);
-  const validImage = (value) => typeof value === "string" && /^assets\/[a-z0-9-]+\.(?:jpg|jpeg|png|webp)$/i.test(value);
-
-  let order = [];
-  try {
-    const savedOrder = JSON.parse(sessionStorage.getItem("dirtytask-checkout-order") || "[]");
-    if (Array.isArray(savedOrder)) {
-      order = savedOrder.filter((item) => item &&
-        typeof item.id === "string" && /^[a-z0-9-]+$/i.test(item.id) &&
-        typeof item.name === "string" && item.name.length <= 100 &&
-        typeof item.category === "string" && item.category.length <= 100 &&
-        typeof item.variantName === "string" && item.variantName.length <= 30 &&
-        Number.isSafeInteger(item.price) && item.price >= 0 &&
-        validImage(item.image) &&
-        typeof item.size === "string" && item.size.length <= 20 &&
-        Number.isSafeInteger(item.qty) && item.qty > 0 && item.qty <= 99
-      ).map((item) => ({ ...item, preorder: Boolean(item.preorder) }));
-    }
-  } catch (_) {
-    order = [];
-  }
-
-  if (!order.length) {
-    emptyState.hidden = false;
-  } else {
-    layout.hidden = false;
-    const itemCount = order.reduce((sum, item) => sum + item.qty, 0);
-    const subtotal = order.reduce((sum, item) => sum + item.price * item.qty, 0);
-    countElement.textContent = itemCount + (itemCount === 1 ? " PIEZA" : " PIEZAS");
-    subtotalElement.textContent = money(subtotal);
-
-    const updateShipping = () => {
-      const department = departmentSelect.value;
-      if (!department) {
-        shippingElement.textContent = "Pendiente";
-        totalElement.textContent = "—";
-        shippingNote.textContent = "Elige tu departamento para calcular el envío.";
-        return;
-      }
-      const shipping = department === "Guatemala" ? 25 : 35;
-      shippingElement.textContent = money(shipping);
-      totalElement.textContent = money(subtotal + shipping);
-      shippingNote.textContent = department === "Guatemala"
-        ? "Envío al departamento de Guatemala: Q 25."
-        : "Envío a " + department + ": Q 35.";
-    };
-    departmentSelect.addEventListener("change", updateShipping);
-    updateShipping();
-
-    order.forEach((item) => {
-      const row = document.createElement("li");
-      row.className = "checkout-item";
-
-      const image = document.createElement("img");
-      image.src = item.image;
-      image.alt = "";
-      image.loading = "lazy";
-
-      const copy = document.createElement("div");
-      copy.className = "checkout-item-copy";
-      const category = document.createElement("small");
-      category.textContent = (item.preorder ? "RESERVA / " : "") + item.category;
-      const title = document.createElement("h3");
-      title.textContent = item.name;
-      const variant = document.createElement("span");
-      variant.textContent = item.variantName.charAt(0).toUpperCase() + item.variantName.slice(1) + " " + item.size + " · Cant. " + item.qty;
-      copy.append(category, title, variant);
-
-      const lineTotal = document.createElement("strong");
-      lineTotal.textContent = money(item.price * item.qty);
-      row.append(image, copy, lineTotal);
-      itemsElement.append(row);
-    });
-  }
-
-  form.addEventListener("submit", (event) => {
+(async () => {
+  const $ = selector => document.querySelector(selector);
+  const form = $('#billingForm');
+  const status = $('#checkoutStatus');
+  const loadStatus = $('#checkoutLoadStatus');
+  const button = $('.place-order-button');
+  let ready = false;
+  let data;
+  let contactUrl = 'https://www.instagram.com/dirtytask/';
+  let subtotalCents = 0;
+  const money = cents => new Intl.NumberFormat('es-GT', {style:'currency',currency:data.settings.currency,maximumFractionDigits:2}).format(cents/100);
+  const node = (tag, text, className) => {
+    const element = document.createElement(tag);
+    if (text !== undefined) element.textContent = text;
+    if (className) element.className = className;
+    return element;
+  };
+  // Install before requesting data: the form must never submit personal details through GET.
+  form.addEventListener('submit', event => {
     event.preventDefault();
-    status.replaceChildren();
-    const selectedPayment = form.querySelector('input[name="paymentMethod"]:checked');
-    const paymentLabel = selectedPayment ? selectedPayment.dataset.paymentLabel : "";
-    status.append(document.createTextNode("Método seleccionado: " + paymentLabel + ". Aún no se envió ningún pedido. Esta página no procesa pedidos ni comparte tus datos. Para confirmar disponibilidad, envío y pago, contacta a Dirtytask."));
-    const contact = document.createElement("a");
-    contact.href = "https://www.instagram.com/dirtytask/?hl=es";
-    contact.target = "_blank";
-    contact.rel = "noopener noreferrer";
-    contact.textContent = "Abrir Instagram de Dirtytask";
-    status.append(contact);
-    status.hidden = false;
-    status.focus();
+    if (!ready || !form.reportValidity()) return;
+    const payment = form.querySelector('input[name="paymentMethod"]:checked');
+    if (!payment || !data.payments.some(method => method.code === payment.value && method.enabled)) return;
+    status.replaceChildren(document.createTextNode('Método seleccionado: ' + payment.dataset.paymentLabel + '. Este resumen no registra pedidos ni procesa pagos. Confirma disponibilidad y entrega con Dirtytask. '));
+    const contact = node('a','Abrir Instagram de Dirtytask');
+    contact.href = contactUrl; contact.target = '_blank'; contact.rel = 'noopener noreferrer';
+    status.append(contact); status.hidden = false; status.focus();
   });
+  $('#retryCheckout').addEventListener('click', () => window.location.reload());
+  button.disabled = true;
+  $('#department').disabled = true;
+  try {
+    let saved;
+    try { saved = JSON.parse(sessionStorage.getItem('dirtytask-checkout-order') || '[]'); }
+    catch { throw new Error('No se pudo leer tu bolsa. Vuelve al catálogo para revisarla.'); }
+    if (!Array.isArray(saved) || !saved.length) {
+      $('#checkoutEmpty').hidden = false; loadStatus.textContent = ''; return;
+    }
+    if (saved.length > 30) throw new Error('Tu bolsa tiene demasiadas líneas. Revísala antes de continuar.');
+    const results = await Promise.allSettled([window.storefrontApi.readCheckout(), window.storefrontApi.readContent()]);
+    if (results[0].status !== 'fulfilled') throw new Error('No pudimos consultar los precios y el envío. Comprueba tu conexión y reintenta.');
+    data = results[0].value;
+    if (results[1].status === 'fulfilled' && results[1].value.instagramUrl) contactUrl = results[1].value.instagramUrl;
+    const catalog = new Map(data.products.map(product => [product.id,product]));
+    const used = new Map(); const lineKeys = new Set();
+    const order = saved.map(item => {
+      const product = catalog.get(item?.id);
+      const variant = product?.variantRecords.find(variant => variant.label === item.size);
+      const key = JSON.stringify([item?.id,item?.size]);
+      if (!product || !variant || (item.variantId && item.variantId !== variant.id) || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 99 || lineKeys.has(key)) {
+        throw new Error('Una pieza o talla de tu bolsa ya no está disponible. Vuelve al catálogo y revisa la bolsa.');
+      }
+      lineKeys.add(key);
+      const quantity = (used.get(product.id) || 0) + item.qty;
+      if (quantity > 99 || (!product.preorder && quantity > product.stock)) throw new Error('Cambió la disponibilidad de una pieza. Vuelve al catálogo y ajusta la bolsa.');
+      used.set(product.id,quantity);
+      // Stored names, prices, images and category labels are never used to calculate the summary.
+      return {...product, variant, qty:item.qty};
+    });
+    subtotalCents = order.reduce((sum,item) => sum+item.priceCents*item.qty,0);
+    if (!Number.isSafeInteger(subtotalCents)) throw new Error('No se pudo calcular el total. Revisa la bolsa.');
+    if (!data.payments.length || !data.departments.length) throw new Error('Las opciones de entrega o pago no están disponibles. Reintenta más tarde.');
+    $('#orderCount').textContent = order.reduce((sum,item)=>sum+item.qty,0) + ' PIEZAS';
+    $('#orderSubtotal').textContent = money(subtotalCents);
+    $('.checkout-secure-note').textContent = 'PEDIDO EN GUATEMALA · ' + data.settings.currency;
+    for (const item of order) {
+      const row = node('li',undefined,'checkout-item');
+      const image = node('img');image.src=item.image;image.alt='';image.loading='lazy';
+      const copy = node('div',undefined,'checkout-item-copy');
+      copy.append(node('small',(item.preorder?'RESERVA / ':'')+item.category),node('h3',item.name),
+        node('span',item.variantName+' '+item.variant.label+' · Cant. '+item.qty));
+      row.append(image,copy,node('strong',money(item.priceCents*item.qty)));
+      $('#checkoutItems').append(row);
+    }
+    const departmentSelect = $('#department');
+    departmentSelect.replaceChildren(new Option('Elige un departamento',''));
+    for (const department of data.departments) departmentSelect.add(new Option(department.name,department.name));
+    departmentSelect.disabled = false;
+    const paymentList = $('.payment-method-list');
+    for (const [index,method] of data.payments.entries()) {
+      const label=node('label',undefined,'payment-method-option');
+      const radio=node('input');radio.type='radio';radio.name='paymentMethod';radio.value=method.code;radio.required=true;radio.dataset.paymentLabel=method.label;
+      const copy=node('span',undefined,'payment-method-copy');copy.append(node('strong',method.label));
+      if(method.detail)copy.append(node('small',method.detail));
+      label.append(radio,copy,node('span',String(index+1).padStart(2,'0'),'payment-method-index'));paymentList.append(label);
+    }
+    function updateShipping() {
+      const department=data.departments.find(row=>row.name===departmentSelect.value);
+      if(!department){$('#orderShipping').textContent='Pendiente';$('#orderTotal').textContent='—';$('#shippingNote').textContent='Elige tu departamento para calcular el envío.';button.disabled=true;return;}
+      const shipping=department.is_metro?data.settings.shippingGuatemalaCents:data.settings.shippingOtherCents;
+      if(!Number.isSafeInteger(subtotalCents+shipping)){button.disabled=true;return;}
+      $('#orderShipping').textContent=money(shipping);$('#orderTotal').textContent=money(subtotalCents+shipping);
+      $('#shippingNote').textContent='Envío a '+department.name+': '+money(shipping)+'.';button.disabled=false;
+    }
+    departmentSelect.addEventListener('change',updateShipping);
+    ready=true;updateShipping();$('#checkoutLayout').hidden=false;
+    loadStatus.textContent='Precios y envío consultados. La disponibilidad se confirma con Dirtytask.';
+  } catch(error) {
+    ready=false;button.disabled=true;$('#checkoutLayout').hidden=true;
+    loadStatus.textContent=error.message || 'No se pudo cargar el resumen. Reintenta.';
+    $('#retryCheckout').hidden=false;
+    const back=node('a','Volver al catálogo y revisar la bolsa');back.href='index.html#coleccion';loadStatus.append(' ',back);
+  }
 })();

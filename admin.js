@@ -1,5 +1,18 @@
 (() => {
   const STORAGE_KEY = "dirtytask-admin-data";
+  let catalogRequest = 0;
+  let catalogReady = false;
+  let catalogBusy = false;
+  const storePanels = {
+    content: { ready: false, busy: false, revision: 0 },
+    settings: { ready: false, busy: false, revision: 0 }
+  };
+  const storeControls = {
+    content: '#contentForm input, #contentForm textarea, #contentForm button, #videoList input, [data-remove-video], #addVideoButton, #saveContentButton',
+    settings: '#shippingForm input, #paymentForm input, #saveSettingsButton'
+  };
+  const emptyContent = () => ({heroCopy: '', feedCopy: '', instagramUrl: '', tiktokUrl: '', videos: []});
+  const emptySettings = () => ({shippingGuatemala: 0, shippingOther: 0, payments: {cash: false, visaInstallments: false, visalink: false}});
   // Authentication is managed by admin-auth.js; local demo tokens grant no access.
   let categoryLabels = Object.create(null);
   let categoriesReady = false;
@@ -26,7 +39,7 @@
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const clone = (value) => JSON.parse(JSON.stringify(value));
-  const formatMoney = (value) => "Q " + new Intl.NumberFormat("es-GT", { maximumFractionDigits: 0 }).format(Number(value) || 0);
+  const formatMoney = (value) => "Q " + new Intl.NumberFormat("es-GT", { maximumFractionDigits: 2 }).format(Number(value) || 0);
   const slug = (value) => String(value || "producto").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "producto";
   const nextDropId = () => {
     const existingIds = new Set(state.launches.map((launch) => launch.id));
@@ -40,7 +53,11 @@
   const MAX_COMPRESSED_IMAGE_BYTES = 128 * 1024;
   const MAX_IMAGE_DATA_LENGTH = 180000;
   const isDeviceImage = (value) => typeof value === "string" && value.length <= MAX_IMAGE_DATA_LENGTH && /^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(value);
-  const validProductImage = (value) => validAsset(value) || isDeviceImage(value);
+  const validProductImage = (value) => validAsset(value) || isDeviceImage(value) || isRemoteImage(value);
+  function isRemoteImage(value) {
+    const base = window.DIRTYTASK_SUPABASE?.url;
+    return Boolean(base && typeof value === 'string' && value.startsWith(base + '/storage/v1/object/public/dtshop-products/'));
+  }
   const validSocialUrl = (value, host) => {
     try {
       const url = new URL(String(value));
@@ -109,6 +126,11 @@
   let state;
   try { state = normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")); }
   catch (_) { state = normalizeState(null); }
+  // Supabase owns the catalog. Never display a previous browser's local catalog.
+  state.products = [];
+  state.launches = [];
+  state.content = emptyContent();
+  state.settings = emptySettings();
   window.adminCatalog = { products: () => structuredClone(state.products), launches: () => structuredClone(state.launches) };
   const loginScreen = $("#loginScreen");
   const adminApp = $("#adminApp");
@@ -130,8 +152,17 @@
     }
     setLoggedIn(Boolean(event.detail));
     applyRoleControls();
-    if (event.detail){ loadCategories(), loadProducts(); }
-    else { categoriesRequest++; categoriesReady = false; categoryLabels = Object.create(null); }
+    if (event.detail) { loadCategories(); loadRemoteCatalog(); loadStorePanel('content'); loadStorePanel('settings'); }
+    else {
+      categoriesRequest++; categoriesReady = false; categoryLabels = Object.create(null);
+      catalogRequest++; catalogReady = false;
+      state.products = []; state.launches = [];
+      for (const panel of Object.values(storePanels)) { panel.revision++; panel.ready = false; panel.busy = false; }
+      state.content = emptyContent(); state.settings = emptySettings();
+      $('#contentLoadStatus').textContent = 'Contenido pendiente de carga.';
+      $('#settingsLoadStatus').textContent = 'Configuración pendiente de carga.';
+      renderAll();
+    }
   });
   const opsControls = '#addVideoButton, #videoList input, [data-remove-video], #addProductButton, #addDropButton, [data-edit-product], [data-edit-drop], #contentForm input, #contentForm textarea, #contentForm button, #saveContentButton, #saveSettingsButton, #shippingForm input, #paymentForm input, #profileForm input, #profileForm button';
   function applyRoleControls() {
@@ -140,6 +171,14 @@
       control.disabled = finance;
       control.title = finance ? 'Edición a cargo del socio de operaciones.' : '';
     });
+    document.querySelectorAll('#addProductButton, #addDropButton, [data-edit-product], [data-edit-drop]').forEach(control => {
+      control.disabled = finance || !catalogReady || catalogBusy;
+    });
+    for (const area of ['content', 'settings']) {
+      const panel = storePanels[area];
+      $$(storeControls[area]).forEach(control => { control.disabled = window.adminIdentity?.role !== 'partner_ops' || !panel.ready || panel.busy; });
+      $(area === 'content' ? '#refreshContent' : '#refreshSettings').disabled = !window.adminIdentity || panel.busy;
+    }
   }
   // Identity fields remain local-demo settings until profile editing is integrated.
   document.addEventListener('click', event => {
@@ -190,26 +229,51 @@ function productFromDatabase(row) {
     variantName: row.variant_label,
     variants: variantLabels,
     variantRecords: variantRows,
+    mediaRecords: media,
+    updatedAt: row.updated_at,
     image: imageUrl(mainPhoto?.storage_key),
     lookImage: imageUrl(lookPhoto?.storage_key)
   };
 }
 
 
-async function loadProducts() {
-  //quien inicia la consulta
+function launchFromDatabase(row) {
+  return {
+    id: row.id, name: row.name, launchDate: row.launch_on || '',
+    arrivalDate: row.arrival_label || '', status: row.status, updatedAt: row.updated_at,
+    image: window.catalogApi.publicImageUrl(row.image_key),
+    productIds: [...(row.launch_product || [])].sort((a,b) => a.sort_order-b.sort_order || a.product_id.localeCompare(b.product_id)).map(link => link.product_id)
+  };
+}
+
+async function loadRemoteCatalog() {
   const userId = window.adminIdentity?.id;
-  if (!userId) return;
+  if (!userId) return false;
+  const ticket = ++catalogRequest;
+  catalogReady = false;
+  $('#refreshCatalog').disabled = true;
+  $('#catalogLoadStatus').textContent = 'Cargando catálogo de Supabase…';
+  applyRoleControls();
   try {
-    const products = await window.catalogApi.listProducts();
-     if (window.adminIdentity?.id !== userId) return;
-     console.log("Productos cargados desde Supabase:", products);
-     console.table(products);
+    const [products, launches] = await Promise.all([window.catalogApi.listProducts(), window.catalogApi.listLaunches()]);
+    if (ticket !== catalogRequest || window.adminIdentity?.id !== userId) return false;
+    const nextProducts = products.map(productFromDatabase);
+    const nextLaunches = launches.map(launchFromDatabase);
+    state.products = nextProducts; state.launches = nextLaunches;
+    catalogReady = true;
+    renderProducts(); renderDrops(); renderOverview(); renderStatistics();
+    $('#catalogLoadStatus').textContent = `Supabase: ${products.length} productos y ${launches.length} lanzamientos.`;
+    document.dispatchEvent(new CustomEvent('dirtytask:admin-data-updated'));
+    return true;
   } catch (error) {
-    if (window.adminIdentity?.id !== userId) return;
-    console.error("Error al cargar productos desde Supabase:", error);
+    if (ticket !== catalogRequest || window.adminIdentity?.id !== userId) return false;
+    $('#catalogLoadStatus').textContent = 'No se pudo actualizar el catálogo. Los datos visibles pueden ser anteriores. Reintenta.';
+    return false;
+  } finally {
+    if (ticket === catalogRequest) { $('#refreshCatalog').disabled = false; applyRoleControls(); }
   }
 }
+  $('#refreshCatalog').addEventListener('click', () => { if (!catalogBusy) loadRemoteCatalog(); });
 
 
   async function loadCategories() {
@@ -222,7 +286,7 @@ async function loadProducts() {
       if (ticket !== categoriesRequest) return;
       categoryLabels = Object.fromEntries(rows.map(row => [row.code, row.label]));
       categoriesReady = rows.length > 0;
-      categoriesMessage = rows.length ? 'Categorías sincronizadas con Supabase. El producto aún se guarda en este navegador.' : 'No hay categorías. Agrega registros en dtshop.category y reintenta.';
+      categoriesMessage = rows.length ? 'Categorías sincronizadas con Supabase.' : 'No hay categorías. Agrega registros en dtshop.category y reintenta.';
       renderProducts(); renderStatistics(); renderOverview();
       applyRoleControls();
     } catch (_) {
@@ -251,7 +315,7 @@ async function loadProducts() {
 
   function persist() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile: state.profile }));
       document.dispatchEvent(new CustomEvent("dirtytask:admin-data-updated"));
       return true;
     } catch (_) {
@@ -276,6 +340,7 @@ async function loadProducts() {
     if (!visible.length) $("#productTableBody").innerHTML = '<tr><td colspan="6">No hay productos cargados. Crea el primero cuando el catálogo real esté listo.</td></tr>';
     $("#productTableCount").textContent = visible.length + (visible.length === 1 ? " producto" : " productos");
     $("#productCount").textContent = String(state.products.length);
+    applyRoleControls();
   }
   function renderDrops() {
     const list = $("#dropAdminList");
@@ -289,6 +354,7 @@ async function loadProducts() {
       }).join("");
     }
     $("#dropCount").textContent = String(state.launches.filter((launch) => launch.status === "open").length);
+    applyRoleControls();
   }
   function renderOverview() {
     const activeProducts = state.products.filter((product) => product.status === "active");
@@ -343,6 +409,7 @@ async function loadProducts() {
   }
   function renderVideos() {
     $("#videoList").innerHTML = state.content.videos.map((url, index) => '<label class="video-row"><span class="video-index">' + String(index + 1).padStart(2, "0") + '</span><input type="url" data-video-index="' + index + '" aria-label="URL del video ' + (index + 1) + '" value="' + escapeHtml(url) + '"><button type="button" data-remove-video="' + index + '" aria-label="Quitar video">×</button></label>').join("");
+    applyRoleControls();
   }
   function renderContent() {
     const form = $("#contentForm");
@@ -569,19 +636,20 @@ async function loadProducts() {
     updateModelPickerSelection();
   });
   function openEditor(type, item = null) {
+    if (!catalogReady || catalogBusy || window.adminIdentity?.role !== 'partner_ops') return;
     currentEditor = { type, id: item?.id || null };
     $("#editorMessage").hidden = true;
     $("#editorKicker").textContent = type === "product" ? "CATÁLOGO / EDICIÓN" : "CALENDARIO / EDICIÓN";
     $("#editorTitle").textContent = item ? (type === "product" ? "Editar producto" : "Editar lanzamiento") : (type === "product" ? "Nuevo producto" : "Nuevo lanzamiento");
     $("#deleteEntryButton").hidden = !item;
-    $("#deleteEntryButton").textContent = type === "product" ? "Archivar producto" : "Eliminar lanzamiento";
+    $("#deleteEntryButton").textContent = type === "product" ? "Archivar producto" : "Cerrar lanzamiento";
     if (type === "product") {
       const product = item || { id: "", name: "", category: "tshirts", price: 0, image: "", lookImage: "", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "", stock: 0, status: "draft", published: false, preorder: false };
       $("#editorFields").innerHTML = field("Identificador", "id", product.id || slug(product.name), { required: true, readonly: Boolean(item) }) +
         field("Nombre del producto", "name", product.name, { required: true }) +
         field("Categoría", "category", product.category, { select: [[product.category, categoryLabels[product.category] || product.category]] }) +
         '<div class="field-hint"><p id="categoryStatus" role="status"></p><button id="retryCategories" type="button" class="admin-button admin-button-quiet">Actualizar categorías</button></div>' +
-        field("Precio (GTQ)", "price", product.price, { type: "number", min: 0, step: 1, required: true }) +
+        field("Precio (GTQ)", "price", product.price, { type: "number", min: 0, step: '0.01', required: true }) +
         renderImagePicker("image", "Foto del producto", product.image) +
         renderImagePicker("lookImage", "Foto del Look", product.lookImage) +
         field("Tipo de variante", "variantName", product.variantName || "talla", { select: [["talla", "Talla"], ["variante", "Variante"]] }) +
@@ -615,21 +683,19 @@ async function loadProducts() {
     const button = event.target.closest("[data-edit-drop]");
     if (button) openEditor("drop", state.launches.find((launch) => launch.id === button.dataset.editDrop));
   });
-  function closeEditor() { editorDialog.close(); currentEditor = null; }
+  function closeEditor() { if (catalogBusy) return; editorDialog.close(); currentEditor = null; }
+  editorDialog.addEventListener('cancel', event => { if (catalogBusy) event.preventDefault(); });
   $("#closeEditor").addEventListener("click", closeEditor);
   $("#cancelEditor").addEventListener("click", closeEditor);
   editorDialog.addEventListener("click", (event) => { if (event.target === editorDialog) closeEditor(); });
-  $("#deleteEntryButton").addEventListener("click", () => {
-    if (!currentEditor?.id) return;
-    if (currentEditor.type === "product") {
-      const product = state.products.find((entry) => entry.id === currentEditor.id);
-      if (product) { product.status = "archived"; product.published = false; }
-    } else state.launches = state.launches.filter((entry) => entry.id !== currentEditor.id);
-    persist(); renderAll(); closeEditor();
+  $("#deleteEntryButton").addEventListener("click", async () => {
+    if (!currentEditor?.id || !catalogReady || catalogBusy || window.adminIdentity?.role !== 'partner_ops') return;
+    const { type, id } = currentEditor;
+    await saveRemoteEntry(() => type === 'product' ? window.catalogApi.archiveProduct(id) : window.catalogApi.closeLaunch(id));
   });
-  editorForm.addEventListener("submit", (event) => {
+  editorForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!currentEditor) return;
+    if (!currentEditor || !catalogReady || catalogBusy || window.adminIdentity?.role !== 'partner_ops') return;
     if (editorForm.querySelector("[data-device-image]:disabled")) return showEditorError("Espera a que termine de procesarse la imagen.");
     const form = new FormData(editorForm);
     const id = String(form.get("id") || "").trim();
@@ -645,6 +711,7 @@ async function loadProducts() {
       if (!variants.length) return showEditorError("Agrega al menos una talla o variante.");
       const original = state.products.find((product) => product.id === existing);
       const product = {
+        updatedAt: original?.updatedAt,
         id, name: String(form.get("name") || "").trim().slice(0, 80), category: String(form.get("category") || "tshirts"),
         price: Math.max(0, Number(form.get("price")) || 0), image, lookImage,
         variantName: String(form.get("variantName") || original?.variantName || "talla"), variants,
@@ -652,48 +719,127 @@ async function loadProducts() {
         status: String(form.get("status") || "draft"), published: form.has("published"), preorder: form.has("preorder")
       };
       if (!product.name) return showEditorError("Agrega el nombre del producto.");
-      if (existing) state.products = state.products.map((entry) => entry.id === existing ? product : entry); else state.products.unshift(product);
+      await saveRemoteEntry(() => window.catalogApi.saveProduct(product, existing, window.adminIdentity.id));
     } else {
       if (!existing && state.launches.some((launch) => launch.id === id)) return showEditorError("Ya existe un lanzamiento con ese identificador.");
       const image = String(form.get("image") || "").trim();
       if (!validProductImage(image)) return showEditorError("Selecciona una imagen JPG, PNG o WEBP válida.");
       const launch = { id, name: String(form.get("name") || "").trim().slice(0, 90), launchDate: String(form.get("launchDate") || ""), arrivalDate: String(form.get("arrivalDate") || "").trim().slice(0, 60), image, status: String(form.get("status") || "upcoming"), productIds: Array.from(editorForm.querySelectorAll('input[name="productIds"]:checked')).map((input) => input.value).slice(0, 12) };
       if (!launch.name) return showEditorError("Agrega el nombre del lanzamiento.");
-      if (existing) state.launches = state.launches.map((entry) => entry.id === existing ? launch : entry); else state.launches.unshift(launch);
+      launch.updatedAt = state.launches.find(entry => entry.id === existing)?.updatedAt;
+      await saveRemoteEntry(() => window.catalogApi.saveLaunch(launch, existing, window.adminIdentity.id));
     }
-    persist(); renderAll(); closeEditor();
   });
+  async function saveRemoteEntry(save) {
+    const userId = window.adminIdentity?.id;
+    const revision = catalogRequest;
+    catalogBusy = true;
+    const controls = Array.from(editorDialog.querySelectorAll('button,input,select,textarea')).filter(control => !control.disabled);
+    controls.forEach(control => { control.disabled = true; });
+    $('#refreshCatalog').disabled = true;
+    applyRoleControls();
+    try {
+      await save();
+      if (window.adminIdentity?.id !== userId || revision !== catalogRequest) return;
+      // Close after server confirmation. A failed refresh must not invite duplicate creates.
+      editorDialog.close(); currentEditor = null;
+      const loaded = await loadRemoteCatalog();
+      if (!loaded && window.adminIdentity?.id === userId) $('#catalogLoadStatus').textContent = 'Cambios guardados en Supabase. No se pudo recargar; pulsa Actualizar catálogo.';
+    } catch (error) {
+      if (window.adminIdentity?.id === userId && revision === catalogRequest) showEditorError(error.message || 'No se pudo guardar en Supabase. Reintenta.');
+    } finally {
+      catalogBusy = false;
+      controls.forEach(control => { control.disabled = false; });
+      $('#refreshCatalog').disabled = false;
+      applyRoleControls();
+    }
+  }
   function showEditorError(message) { $("#editorMessage").textContent = message; $("#editorMessage").hidden = false; }
+
+  function contentFromDatabase(data) {
+    if (!data?.block?.updated_at || !Array.isArray(data.videos)) throw new Error('Contenido incompleto en Supabase.');
+    return {heroCopy: data.block.hero_copy, feedCopy: data.block.feed_copy,
+      instagramUrl: data.block.instagram_url, tiktokUrl: data.block.tiktok_url,
+      videos: data.videos.map(video => video.url), updatedAt: data.block.updated_at};
+  }
+  function settingsFromDatabase(data) {
+    if (!data?.settings?.updated_at || !Array.isArray(data.payments)) throw new Error('Configuración incompleta en Supabase.');
+    const payment = code => {
+      const row = data.payments.find(method => method.code === code);
+      if (!row) throw new Error('Falta el método de pago ' + code + ' en Supabase.');
+      return row.enabled;
+    };
+    return {shippingGuatemala: Number(data.settings.shipping_guatemala_cents) / 100,
+      shippingOther: Number(data.settings.shipping_other_cents) / 100,
+      payments: {cash: payment('cash'), visaInstallments: payment('visa_installments'), visalink: payment('visalink')},
+      updatedAt: data.settings.updated_at};
+  }
+  async function storeOperation(area, action, saving = false) {
+    const panel = storePanels[area];
+    const userId = window.adminIdentity?.id;
+    if (!userId || panel.busy || (saving && (!panel.ready || window.adminIdentity.role !== 'partner_ops'))) return;
+    const ticket = ++panel.revision;
+    panel.busy = true;
+    if (!saving) panel.ready = false;
+    const status = $(area === 'content' ? '#contentLoadStatus' : '#settingsLoadStatus');
+    status.textContent = saving ? 'Guardando en Supabase…' : 'Cargando desde Supabase…';
+    applyRoleControls();
+    try {
+      const data = await action();
+      if (ticket !== panel.revision || window.adminIdentity?.id !== userId) return;
+      state[area] = area === 'content' ? contentFromDatabase(data) : settingsFromDatabase(data);
+      panel.ready = true;
+      if (area === 'content') renderContent(); else renderSettings();
+      status.textContent = saving ? 'Cambios guardados en Supabase.' : 'Datos cargados desde Supabase.';
+    } catch (error) {
+      if (ticket !== panel.revision || window.adminIdentity?.id !== userId) return;
+      status.textContent = saving ? 'No se pudo guardar. ' + (error.message || 'Reintenta.')
+        : 'No se pudo actualizar. Lo visible puede ser anterior. ' + (error.message || 'Reintenta.');
+    } finally {
+      if (ticket === panel.revision && window.adminIdentity?.id === userId) { panel.busy = false; applyRoleControls(); }
+    }
+  }
+  function loadStorePanel(area) {
+    return storeOperation(area, () => area === 'content' ? window.storeApi.readContent() : window.storeApi.readSettings());
+  }
+  $('#refreshContent').addEventListener('click', () => loadStorePanel('content'));
+  $('#refreshSettings').addEventListener('click', () => loadStorePanel('settings'));
+  const canEditStore = area => window.adminIdentity?.role === 'partner_ops' && storePanels[area].ready && !storePanels[area].busy;
+  const videoDraft = () => $$('[data-video-index]').map(input => input.value.trim());
 
   $("#contentForm").addEventListener("submit", (event) => { event.preventDefault(); saveContent(); });
   $("#saveContentButton").addEventListener("click", saveContent);
   function saveContent() {
+    if (!canEditStore('content')) return;
     const form = $("#contentForm");
-    const videos = $$("[data-video-index]").map((input) => normalizeVideoUrl(input.value)).filter(Boolean);
+    const videos = videoDraft().map(normalizeVideoUrl);
+    if (videos.some(url => !url) || new Set(videos).size !== videos.length || videos.length > 12) {
+      $('#contentLoadStatus').textContent = 'Usa hasta 12 enlaces válidos y distintos de TikTok o Instagram.';
+      return;
+    }
     const instagramUrl = validSocialUrl(form.elements.instagramUrl.value, "instagram.com");
     const tiktokUrl = validSocialUrl(form.elements.tiktokUrl.value, "tiktok.com");
-    if (!instagramUrl || !tiktokUrl) return window.alert("Verifica los enlaces de Instagram y TikTok de Dirtytask.");
-    state.content = {
+    if (!instagramUrl || !tiktokUrl) { $('#contentLoadStatus').textContent = 'Verifica los enlaces de Instagram y TikTok de Dirtytask.'; return; }
+    const content = {
       heroCopy: form.elements.heroCopy.value.trim().slice(0, 240), feedCopy: form.elements.feedCopy.value.trim().slice(0, 140),
       instagramUrl, tiktokUrl,
-      videos: videos.length ? videos : clone(seed.content.videos)
+      videos, updatedAt: state.content.updatedAt
     };
-    persist(); renderContent(); announceSaved();
+    return storeOperation('content', () => window.storeApi.saveContent(content), true);
   }
   $("#addVideoButton").addEventListener("click", () => {
-    if (state.content.videos.length >= 12) return window.alert("Puedes agregar hasta 12 videos.");
-    state.content.videos.push("https://www.tiktok.com/@dirtytask/video/7326274171879591173"); renderVideos();
-  });
-  $("#videoList").addEventListener("input", () => {
-    const videos = $$("[data-video-index]").map((input) => normalizeVideoUrl(input.value)).filter(Boolean);
-    if (videos.length) { state.content.videos = videos; persist(); }
+    if (!canEditStore('content')) return;
+    const videos = videoDraft();
+    if (videos.length >= 12) { $('#contentLoadStatus').textContent = 'Puedes agregar hasta 12 videos.'; return; }
+    state.content.videos = [...videos, '']; renderVideos();
   });
   $("#videoList").addEventListener("click", (event) => {
     const button = event.target.closest("[data-remove-video]");
-    if (!button) return;
-    state.content.videos.splice(Number(button.dataset.removeVideo), 1); persist(); renderVideos();
+    if (!button || !canEditStore('content')) return;
+    state.content.videos = videoDraft();
+    state.content.videos.splice(Number(button.dataset.removeVideo), 1); renderVideos();
   });
-  $("#profileForm").addEventListener("submit", (event) => { event.preventDefault(); saveSettings(); });
+  $("#profileForm").addEventListener("submit", (event) => { event.preventDefault(); saveLocalProfile(); });
   $("#shippingForm").addEventListener("submit", (event) => { event.preventDefault(); saveSettings(); });
   $("#paymentForm").addEventListener("submit", (event) => { event.preventDefault(); saveSettings(); });
   $("#saveSettingsButton").addEventListener("click", saveSettings);
@@ -730,28 +876,35 @@ async function loadProducts() {
     persist();
     renderProfile();
   });
-  function saveSettings() {
-    const shipping = $("#shippingForm"); const payments = $("#paymentForm"); const profileForm = $("#profileForm");
+  function saveLocalProfile() {
+    if (window.adminIdentity?.role !== 'partner_ops') return;
+    const profileForm = $('#profileForm');
     const displayName = String(profileForm.elements.displayName.value || "").replace(/\s+/g, " ").trim().slice(0, 60);
     if (displayName.length < 2) {
       window.alert("Escribe un nombre de al menos 2 caracteres.");
       profileForm.elements.displayName.focus();
       return;
     }
-    if (![payments.elements.cash.checked, payments.elements.visaInstallments.checked, payments.elements.visalink.checked].some(Boolean)) {
-      window.alert("Deja al menos un método de pago disponible.");
-      renderSettings();
-      return;
-    }
     state.profile.displayName = displayName;
-    state.settings = {
-      shippingGuatemala: Math.max(0, Number(shipping.elements.shippingGuatemala.value) || 0),
-      shippingOther: Math.max(0, Number(shipping.elements.shippingOther.value) || 0),
-      payments: { cash: payments.elements.cash.checked, visaInstallments: payments.elements.visaInstallments.checked, visalink: payments.elements.visalink.checked }
-    };
     if (!persist()) return;
     renderProfile();
     announceSaved();
+  }
+  function saveSettings() {
+    if (!canEditStore('settings')) return;
+    const shipping = $('#shippingForm'); const payments = $('#paymentForm');
+    if (!shipping.reportValidity()) return;
+    const settings = {
+      shippingGuatemala: Number(shipping.elements.shippingGuatemala.value),
+      shippingOther: Number(shipping.elements.shippingOther.value),
+      payments: {cash: payments.elements.cash.checked, visaInstallments: payments.elements.visaInstallments.checked, visalink: payments.elements.visalink.checked},
+      updatedAt: state.settings.updatedAt
+    };
+    if (!Object.values(settings.payments).some(Boolean)) {
+      $('#settingsLoadStatus').textContent = 'Deja al menos un método de pago disponible.';
+      return;
+    }
+    return storeOperation('settings', () => window.storeApi.saveSettings(settings), true);
   }
   function announceSaved() {
     const welcome = $("#welcomeName");
@@ -759,6 +912,4 @@ async function loadProducts() {
     welcome.textContent = "Guardado en este navegador";
     setTimeout(() => { if (welcome.isConnected) welcome.textContent = previous; }, 2200);
   }
-  $$('input[name="shippingGuatemala"], input[name="shippingOther"], input[name="cash"], input[name="visaInstallments"], input[name="visalink"]').forEach((input) => input.addEventListener("change", saveSettings));
-  $$('[data-video-index]').forEach((input) => input.addEventListener("change", saveContent));
 })();

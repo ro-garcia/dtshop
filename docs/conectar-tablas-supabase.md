@@ -1,5 +1,7 @@
 # Guía: conectar el catálogo completo con Supabase
 
+> **Guía histórica del proceso de aprendizaje.** La lectura y escritura del catálogo del administrador ya están implementadas. No reemplaces los archivos actuales con los ejemplos siguientes: consulta [el estado actual y la migración necesaria](catalog-integration.md).
+
 Esta guía explica cambios que **tú aplicarás después**. Actualizar este documento no modifica automáticamente la aplicación.
 
 Actualmente solo está conectada la lectura de `category`. La URL y clave se configuran en `supabase-config.js`; `admin-auth.js` crea el cliente compartido `window.dirtytaskSupabase`. No crees otro cliente.

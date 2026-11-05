@@ -1,5 +1,16 @@
-(() => {
-  const products = {};
+(async () => {
+  const safeText = (value) => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
+  document.getElementById('retryStorefront').addEventListener('click', () => window.location.reload());
+  const results = await Promise.allSettled([
+    Promise.resolve().then(() => window.storefrontApi.readCatalog()),
+    Promise.resolve().then(() => window.storefrontApi.readContent())
+  ]);
+  const catalogData = results[0].status === 'fulfilled' ? results[0].value : null;
+  const contentData = results[1].status === 'fulfilled' ? results[1].value : null;
+  const products = Object.assign(Object.create(null), Object.fromEntries((catalogData?.products || []).map(product => [product.id,product])));
+  const currency = catalogData?.settings.currency || 'GTQ';
+  const money = value => new Intl.NumberFormat('es-GT', {style:'currency',currency,maximumFractionDigits:2}).format(Number(value));
+  mountStorefront();
   const cards = Array.from(document.querySelectorAll(".product-card"));
   const catalogPhotoCards = Array.from(document.querySelectorAll(".product-card, .editorial-product-card"));
   const filters = Array.from(document.querySelectorAll(".filter-button"));
@@ -35,15 +46,23 @@
   try {
     localStorage.removeItem("dirtytask-demo-cart");
     const savedCart = JSON.parse(localStorage.getItem("dirtytask-cart") || "[]");
-    if (Array.isArray(savedCart)) cart = savedCart.filter((item) => products[item.id] && products[item.id].variants.includes(item.size) && Number.isFinite(item.qty) && item.qty > 0);
+    if (Array.isArray(savedCart)) {
+      const used = new Map();
+      for (const item of savedCart) {
+        const product = products[item?.id];
+        if (!product || !product.variants.includes(item.size) || !Number.isInteger(item.qty) || item.qty < 1) continue;
+        const max = product.preorder ? 99 : Math.min(99,product.stock);
+        const qty = Math.min(item.qty,max-(used.get(item.id)||0));
+        if (qty < 1) continue;
+        const existing = cart.find(entry => entry.id === item.id && entry.size === item.size);
+        if (existing) existing.qty += qty; else cart.push({id:item.id,size:item.size,qty});
+        used.set(item.id,(used.get(item.id)||0)+qty);
+      }
+    }
   } catch (_) {
     cart = [];
   }
 
-  const money = (value) => "Q " + new Intl.NumberFormat("es-GT", { maximumFractionDigits: 0 }).format(Number(value));
-  const safeText = (value) => String(value).replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
-  })[char]);
   const saveCart = () => {
     try { localStorage.setItem("dirtytask-cart", JSON.stringify(cart)); } catch (_) { /* The cart still works for this visit. */ }
   };
@@ -129,6 +148,14 @@
   }
 
   function applyFilters() {
+    if (!catalogData) {
+      resultCount.textContent = 'Catálogo no disponible.';
+      document.getElementById('emptyTitle').textContent = 'No pudimos cargar la colección.';
+      document.getElementById('emptyCopy').textContent = 'Comprueba tu conexión y pulsa Reintentar.';
+      document.getElementById('retryStorefront').hidden = false;
+      grid.hidden = true; emptyState.hidden = false;
+      return;
+    }
     const query = searchInput.value.trim().toLocaleLowerCase("es");
     let visibleCount = 0;
     cards.forEach((card) => {
@@ -147,13 +174,13 @@
       const emptyCopy = document.getElementById("emptyCopy");
       if (!cards.length) {
         emptyTitle.textContent = "El catálogo está vacío.";
-        emptyCopy.textContent = "Las piezas publicadas aparecerán aquí cuando se conecte el inventario.";
+        emptyCopy.textContent = "Todavía no hay piezas publicadas. Vuelve pronto para descubrir novedades.";
       } else if (query) {
         emptyTitle.textContent = "No encontramos esa pieza.";
         emptyCopy.textContent = "Prueba otra palabra o revisa una subcategoría distinta.";
-      } else if (activeFilter === "hoodies") {
-        emptyTitle.textContent = "Hoodies: próximamente.";
-        emptyCopy.textContent = "Próximamente habrá más hoodies en esta subcategoría.";
+      } else {
+        emptyTitle.textContent = 'No hay piezas en esta categoría.';
+        emptyCopy.textContent = 'Explora otra categoría o vuelve a ver toda la colección.';
       }
     }
   }
@@ -257,7 +284,7 @@
     addToBagButton.disabled = true;
     addToBagButton.textContent = "Elige " + (product.variantName === "talla" ? "una talla" : "una variante");
     document.getElementById("variantLegend").firstChild.nodeValue = product.variantName === "talla" ? "Elige talla " : "Elige variante ";
-    sizeOptions.innerHTML = product.variants.map((size) => '<button class="size-option" type="button" aria-pressed="false" data-size-choice="' + size + '">' + size + '</button>').join("");
+    sizeOptions.innerHTML = product.variants.map((size) => '<button class="size-option" type="button" aria-pressed="false" data-size-choice="' + safeText(size) + '"' + (!product.preorder && product.stock < 1 ? ' disabled' : '') + '>' + safeText(size) + '</button>').join("");
     productDialog.showModal();
   }
   function setProductView() {
@@ -274,6 +301,7 @@
   sizeOptions.addEventListener("click", (event) => {
     const button = event.target.closest("[data-size-choice]");
     if (!button) return;
+    if (button.disabled || (!products[activeProduct]?.preorder && products[activeProduct]?.stock < 1)) return;
     activeSize = button.dataset.sizeChoice;
     sizeOptions.querySelectorAll("[data-size-choice]").forEach((option) => option.setAttribute("aria-pressed", String(option === button)));
     document.getElementById("selectedSizeLabel").textContent = activeSize;
@@ -282,6 +310,9 @@
   });
   addToBagButton.addEventListener("click", () => {
     if (!activeProduct || !activeSize) return;
+    const product = products[activeProduct];
+    const total = cart.filter(item => item.id === activeProduct).reduce((sum,item) => sum+item.qty,0);
+    if (total >= (product.preorder ? 99 : Math.min(99,product.stock))) return announce('No hay más unidades disponibles para agregar.');
     const existing = cart.find((item) => item.id === activeProduct && item.size === activeSize);
     if (existing) existing.qty += 1;
     else cart.push({ id: activeProduct, size: activeSize, qty: 1 });
@@ -303,6 +334,9 @@
     if (quantityButton) {
       const item = cart.find((entry) => entry.id === quantityButton.dataset.id && entry.size === quantityButton.dataset.size);
       if (!item) return;
+      const product = products[item.id];
+      const total = cart.filter(entry => entry.id === item.id).reduce((sum,entry) => sum+entry.qty,0);
+      if (Number(quantityButton.dataset.quantity)>0 && total >= (product.preorder ? 99 : Math.min(99,product.stock))) return announce('No hay más unidades disponibles para agregar.');
       item.qty += Number(quantityButton.dataset.quantity);
       if (item.qty <= 0) cart = cart.filter((entry) => entry !== item);
     } else if (removeButton) {
@@ -317,6 +351,7 @@
       const product = products[item.id];
       return {
         id: item.id,
+        variantId: product.variantRecords.find(variant => variant.label === item.size)?.id,
         name: product.name,
         category: product.category,
         variantName: product.variantName,
@@ -355,8 +390,66 @@
     if (item.open) launchItems.forEach((other) => { if (other !== item) other.open = false; });
   }));
 
+  function mountStorefront() {
+    const photo = product => '<img src="' + safeText(product.image || 'assets/dirtytask-logo.png') + '" alt="' + safeText(product.name) + '" loading="lazy">';
+    const published = (catalogData?.products || []).filter(product => product.published);
+    document.getElementById('catalogCurrency').textContent = 'PRECIOS / ' + currency;
+    if (catalogData) {
+      document.querySelector('.filter-list').innerHTML = '<button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">Todo <span>00</span></button>' +
+        catalogData.categories.map(category => '<button class="filter-button" type="button" data-filter="' + safeText(category.code) + '" aria-pressed="false">' + safeText(category.label) + '</button>').join('');
+      document.querySelector('.nav-subcategories').innerHTML = catalogData.categories.map(category => '<a href="#coleccion" data-nav-filter="' + safeText(category.code) + '">' + safeText(category.label) + '</a>').join('');
+    }
+    document.getElementById('productGrid').innerHTML = published.map((product,index) =>
+      '<article class="product-card" data-product-id="' + safeText(product.id) + '" data-category="' + safeText(product.categoryCode) + '" data-search="' + safeText(product.name+' '+product.category) + '" data-price="' + product.price + '" data-order="' + index + '">' +
+      '<button class="product-photo photo-product" type="button" data-open-product="' + safeText(product.id) + '" aria-label="Ver ' + safeText(product.name) + '">' + photo(product) + '<span class="photo-index">A / '+String(index+1).padStart(2,'0')+'</span></button>' +
+      '<div class="product-meta"><span>'+safeText(product.category)+'</span><span>'+(product.preorder?'PREVENTA':product.stock?'DISPONIBLE':'AGOTADO')+'</span></div>' +
+      '<div class="product-title-row"><h3>'+safeText(product.name)+'</h3><span>'+safeText(money(product.price))+'</span></div>'+
+      '<button class="quick-add" type="button" data-open-product="'+safeText(product.id)+'">Ver pieza <span>+</span></button></article>').join('');
+    document.getElementById('new-in').hidden = !published.length;
+    document.querySelector('.editorial-grid').innerHTML = '<div class="editorial-top-products">' + published.slice(-4).reverse().map((product,index) =>
+      '<article class="editorial-product-card" data-product-id="'+safeText(product.id)+'" data-order="'+(index+1)+'"><div class="editorial-photo-wrap">' +
+      '<button class="editorial-product-photo photo-product" type="button" data-open-product="'+safeText(product.id)+'" aria-label="Ver '+safeText(product.name)+'">'+photo(product)+'</button>'+
+      '<button class="editorial-save" type="button" data-save-product="'+safeText(product.id)+'" aria-pressed="false" aria-label="Guardar '+safeText(product.name)+'">♡</button></div>'+
+      '<div class="editorial-product-meta"><h3>'+safeText(product.name)+'</h3><span>'+safeText(money(product.price))+'</span></div></article>').join('')+'</div>';
+    const launches = catalogData?.launches || [];
+    document.querySelector('.drop-open').textContent = launches.length ? launches.length+' LANZAMIENTOS' : catalogData ? 'SIN LANZAMIENTOS' : 'NO DISPONIBLE';
+    document.querySelector('.launch-list').innerHTML = launches.map((launch,index) =>
+      '<details class="launch-item"><summary class="launch-summary"><span class="launch-summary-image"><img src="'+safeText(launch.image || 'assets/dirtytask-logo.png')+'" alt="" loading="lazy"></span><span class="launch-summary-copy"><span class="launch-summary-overline">DROP / '+String(index+1).padStart(2,'0')+'</span><strong class="launch-summary-title">'+safeText(launch.name)+'</strong><span class="launch-summary-meta">'+safeText(launch.launchDate || 'Fecha por confirmar')+'</span></span><span class="launch-summary-action">'+(launch.status==='open'?'Reservas abiertas':'Próximamente')+' <i>+</i></span></summary>'+
+      '<div class="drop-layout"><div class="drop-visual"><img src="'+safeText(launch.image || 'assets/dirtytask-logo.png')+'" alt="'+safeText(launch.name)+'" loading="lazy"></div>'+
+      '<div class="drop-content"><p class="drop-description">Llegada: '+safeText(launch.arrivalDate || 'Por confirmar')+'</p><div class="drop-product-list">'+launch.productIds.map(id => {
+        const product=products[id];
+        return '<div class="drop-product"><h3>'+safeText(product.name)+'</h3><strong>'+safeText(money(product.price))+'</strong><button type="button" data-open-product="'+safeText(id)+'">Ver pieza <span>+</span></button></div>';
+      }).join('')+'</div></div></div></details>').join('') || '<p class="drop-empty">'+(catalogData?'No hay drops publicados.':'No se pudieron consultar los lanzamientos.')+'</p>';
+    const contentStatus = document.getElementById('publicContentStatus');
+    if (!contentData) {
+      contentStatus.textContent = 'No se pudo cargar el contenido. Reintenta para actualizarlo.';
+      document.getElementById('retryStorefront').hidden = false;
+      return;
+    }
+    document.querySelector('.hero-copy').textContent = contentData.heroCopy;
+    document.querySelector('.instagram-caption').textContent = contentData.feedCopy;
+    document.querySelectorAll('a[href]').forEach(anchor => {
+      try {
+        const host = new URL(anchor.href).hostname.replace(/^www\./,'');
+        if (host==='instagram.com' && contentData.instagramUrl) anchor.href=contentData.instagramUrl;
+        if (host==='tiktok.com' && contentData.tiktokUrl) anchor.href=contentData.tiktokUrl;
+      } catch {}
+    });
+    document.getElementById('instagramTrack').innerHTML = contentData.videos.map(video => {
+      const tiktok = window.storefrontApi.socialUrl(video.url,'tiktok.com');
+      const instagram = window.storefrontApi.socialUrl(video.url,'instagram.com');
+      const id = tiktok && new URL(tiktok).pathname.match(/^\/@[\w.-]+\/video\/(\d{8,22})$/)?.[1];
+      if (id) return '<article class="instagram-tile instagram-video-tile"><iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/'+id+'?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0" title="Video de Dirtytask en TikTok" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe><a class="instagram-tile-type" href="'+safeText(tiktok)+'" target="_blank" rel="noopener noreferrer">TIKTOK</a></article>';
+      if (instagram && /^\/(?:reel|p)\/[\w-]+\/?$/.test(new URL(instagram).pathname)) return '<a class="instagram-tile" href="'+safeText(instagram)+'" target="_blank" rel="noopener noreferrer"><span class="instagram-tile-type">Ver video en Instagram ↗</span></a>';
+      return '';
+    }).join('');
+    contentStatus.textContent = document.getElementById('instagramTrack').children.length ? '' : 'Todavía no hay videos publicados.';
+  }
+
   applyFilters();
   renderCart();
+  openCartButton.disabled = !catalogData;
+  if (catalogData) saveCart();
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
     document.documentElement.classList.add("js-ready");
     const observer = new IntersectionObserver((entries, currentObserver) => {

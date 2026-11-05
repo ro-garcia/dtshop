@@ -101,5 +101,92 @@ const {randomUUID} = require('node:crypto');
  await db.exec('ROLLBACK');
  assert.equal((await db.query('SELECT count(*)::int AS n FROM dtshop.money_account')).rows[0].n,2);
  console.log('PASS repeated installation preserves existing data');
+ const migration=fs.readFileSync(path.join(__dirname,'../sql/catalog-integration.sql'),'utf8');
+ await db.exec(migration);
+ await db.exec(migration);
+ const productPayload={id:'remote-shirt',name:'Producto remoto',category_code:'tshirts',description:'Probado',price_cents:29950,stock:5,status:'active',published:true,preorder:false,variant_label:'talla',variants:['M','S'],image_key:ops+'/shirt.webp',look_key:null};
+ await rejected(()=>rpc(finance,'save_catalog_product',[productPayload,null]));
+ await rejected(()=>rpc(customer,'save_catalog_product',[productPayload,null]));
+ await rpc(ops,'save_catalog_product',[productPayload,null]);
+ await rejected(()=>rpc(ops,'save_catalog_product',[productPayload,null]));
+ const originalVariant=(await db.query("SELECT id FROM dtshop.product_variant WHERE product_id='remote-shirt' AND label='M'")).rows[0].id;
+ const version=async(table,id)=>(await db.query(`SELECT updated_at::text AS v FROM dtshop.${table} WHERE id=$1`,[id])).rows[0].v;
+ let expected_updated_at=await version('product','remote-shirt');
+ await rpc(ops,'save_catalog_product',[{...productPayload,variants:['L','M'],expected_updated_at},'remote-shirt']);
+ assert.equal((await db.query("SELECT id FROM dtshop.product_variant WHERE product_id='remote-shirt' AND label='M'")).rows[0].id,originalVariant);
+ await rejected(()=>rpc(ops,'save_catalog_product',[{...productPayload,expected_updated_at},'remote-shirt']));
+ expected_updated_at=await version('product','remote-shirt');
+ await rejected(()=>rpc(ops,'save_catalog_product',[{...productPayload,name:'No guardar',image_key:'invalid key',expected_updated_at},'remote-shirt']));
+ assert.equal((await db.query("SELECT name FROM dtshop.product WHERE id='remote-shirt'")).rows[0].name,'Producto remoto');
+ const launchPayload={id:'remote-drop',name:'Drop remoto',launch_on:null,arrival_label:'Diciembre',status:'upcoming',product_ids:['remote-shirt'],image_key:ops+'/drop.webp'};
+ await rpc(ops,'save_catalog_launch',[launchPayload,null]);
+ const launchVersion=await version('launch','remote-drop');
+ await rejected(()=>rpc(ops,'save_catalog_launch',[{...launchPayload,name:'No guardar',product_ids:['missing-product'],expected_updated_at:launchVersion},'remote-drop']));
+ assert.equal((await db.query("SELECT product_id FROM dtshop.launch_product WHERE launch_id='remote-drop'")).rows[0].product_id,'remote-shirt');
+ // A sold variant retains its UUID and cannot be removed through catalog editing.
+ const soldVersion=await version('product','test-shirt');
+ await rejected(()=>rpc(ops,'save_catalog_product',[{...productPayload,id:'test-shirt',variants:['XL'],expected_updated_at:soldVersion},'test-shirt']));
+ assert.equal((await db.query("SELECT label FROM dtshop.product_variant WHERE id=$1",[variant])).rows[0].label,'M');
+ await rejected(()=>rpc(finance,'archive_catalog_product',['remote-shirt']));
+ await rejected(()=>rpc(finance,'close_catalog_launch',['remote-drop']));
+ await rpc(ops,'archive_catalog_product',['remote-shirt']);
+ await rpc(ops,'close_catalog_launch',['remote-drop']);
+ assert.equal((await db.query("SELECT status FROM dtshop.product WHERE id='remote-shirt'")).rows[0].status,'archived');
+ assert.equal((await db.query("SELECT status FROM dtshop.launch WHERE id='remote-drop'")).rows[0].status,'closed');
+ console.log('PASS catalog migration, atomic saves/rollback, stable variant IDs, stale edits, roles and archiving');
+ const storeMigration=fs.readFileSync(path.join(__dirname,'../sql/store-integration.sql'),'utf8');
+ await db.exec(storeMigration);await db.exec(storeMigration);
+ const contentPayload={hero_copy:'Nuevo mensaje',feed_copy:'Nuevo feed',instagram_url:'https://www.instagram.com/dirtytask/',tiktok_url:'https://www.tiktok.com/@dirtytask',videos:['https://www.tiktok.com/@dirtytask/video/7326274171879591173'],expected_updated_at:await version('content_block',1)};
+ await rejected(()=>rpc(finance,'save_store_content',[contentPayload]));
+ await rejected(()=>rpc(customer,'save_store_content',[contentPayload]));
+ let contentSaved=await rpc(ops,'save_store_content',[contentPayload]);
+ assert.equal(contentSaved.block.hero_copy,'Nuevo mensaje');assert.equal(contentSaved.videos.length,1);
+ const videoId=contentSaved.videos[0].id;
+ await rejected(()=>rpc(ops,'save_store_content',[contentPayload]));
+ contentSaved=await rpc(ops,'save_store_content',[{...contentPayload,expected_updated_at:contentSaved.block.updated_at}]);
+ assert.equal(contentSaved.videos[0].id,videoId);
+ await rejected(()=>rpc(ops,'save_store_content',[{...contentPayload,hero_copy:'No guardar',videos:['invalid-url'],expected_updated_at:contentSaved.block.updated_at}]));
+ assert.equal((await db.query('SELECT hero_copy FROM dtshop.content_block WHERE id=1')).rows[0].hero_copy,'Nuevo mensaje');
+ assert.equal((await db.query('SELECT id FROM dtshop.content_video')).rows[0].id,videoId);
+ await rejected(()=>rpc(ops,'save_store_content',[{...contentPayload,videos:[contentPayload.videos[0],contentPayload.videos[0]],expected_updated_at:contentSaved.block.updated_at}]));
+ contentSaved=await rpc(ops,'save_store_content',[{...contentPayload,videos:[],expected_updated_at:contentSaved.block.updated_at}]);
+ assert.deepEqual(contentSaved.videos,[]);
+ const settingPayload={shipping_guatemala_cents:3025,shipping_other_cents:4075,payments:{cash:false,visa_installments:true,visalink:false},expected_updated_at:await version('store_setting',1)};
+ await rejected(()=>rpc(finance,'save_store_settings',[settingPayload]));
+ await rejected(()=>rpc(customer,'save_store_settings',[settingPayload]));
+ const settingsSaved=await rpc(ops,'save_store_settings',[settingPayload]);
+ assert.equal(Number(settingsSaved.settings.shipping_guatemala_cents),3025);
+ assert.equal(settingsSaved.settings.currency,'USD','Saving rates must preserve the existing currency');
+ assert.equal(settingsSaved.payments.find(p=>p.code==='cash').enabled,false);
+ assert.equal(settingsSaved.payments.find(p=>p.code==='visa_installments').enabled,true);
+ await rejected(()=>rpc(ops,'save_store_settings',[settingPayload]));
+ const fresh={...settingPayload,expected_updated_at:settingsSaved.settings.updated_at};
+ await rejected(()=>rpc(ops,'save_store_settings',[{...fresh,payments:{cash:false,visa_installments:false,visalink:false}}]));
+ await rejected(()=>rpc(ops,'save_store_settings',[{...fresh,shipping_other_cents:-1}]));
+ await rejected(()=>rpc(ops,'save_store_settings',[{...fresh,shipping_other_cents:1.5}]));
+ assert.equal(Number((await db.query('SELECT shipping_other_cents FROM dtshop.store_setting')).rows[0].shipping_other_cents),4075);
+ console.log('PASS store migration, content/video persistence, empty feed, atomic rollback, stale writes, roles and shipping/payment validation');
+ await db.exec(`INSERT INTO dtshop.product(id,name,category_code,price_cents,status,published,preorder) VALUES
+  ('anon-public','Público','tshirts',29950,'active',true,false),
+  ('anon-draft','Borrador','tshirts',29950,'draft',true,false),
+  ('anon-archived','Archivado','tshirts',29950,'archived',true,false),
+  ('anon-hidden','Oculto','tshirts',29950,'active',false,false),
+  ('anon-preorder','Preventa','tshirts',29950,'active',false,true),
+  ('anon-orphan','Sin lanzamiento','tshirts',29950,'active',false,true);
+  INSERT INTO dtshop.product_variant(product_id,label) SELECT id,'Única' FROM dtshop.product WHERE id LIKE 'anon-%';
+  INSERT INTO dtshop.launch(id,name,status) VALUES('anon-launch','Drop público','open');
+  INSERT INTO dtshop.launch_product(launch_id,product_id) VALUES('anon-launch','anon-preorder');`);
+ await db.exec('SET ROLE anon');
+ try {
+  await db.query("SELECT set_config('request.jwt.claim.sub','',false)");
+  const publicProducts=(await db.query("SELECT id FROM dtshop.product WHERE id LIKE 'anon-%' ORDER BY id")).rows.map(row=>row.id);
+  assert.deepEqual(publicProducts,['anon-preorder','anon-public']);
+  const publicVariants=(await db.query("SELECT product_id FROM dtshop.product_variant WHERE product_id LIKE 'anon-%' ORDER BY product_id")).rows.map(row=>row.product_id);
+  assert.deepEqual(publicVariants,['anon-preorder','anon-public']);
+  assert.equal((await db.query('SELECT code FROM dtshop.payment_method')).rows.length,1,'Anonymous readers see enabled methods only');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM dtshop.department')).rows[0].n,22);
+  await rejected(()=>db.exec('SELECT * FROM dtshop.shop_order'));
+ } finally {await db.exec('RESET ROLE');}
+ console.log('PASS anonymous storefront RLS for published products, launched preorders, variants, payments and private orders');
  await db.close();
 })().catch(e=>{console.error(e);process.exitCode=1;});

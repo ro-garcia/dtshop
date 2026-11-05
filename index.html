@@ -10,6 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Pirata+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="supabase-config.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.js" defer></script>
+    <script src="storefront-api.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -148,15 +151,15 @@
           </div>
         </div>
         <div class="catalog-status">
-          <p id="resultCount" aria-live="polite">0 piezas</p>
-          <p>PRECIOS / GTQ</p>
+          <p id="resultCount" aria-live="polite">Cargando catálogo…</p><button id="retryStorefront" class="text-link" type="button" hidden>Reintentar</button>
+          <p id="catalogCurrency">PRECIOS / GTQ</p>
         </div>
 
         <div class="product-grid" id="productGrid" hidden></div>
         <div class="empty-state" id="emptyState">
           <p class="eyebrow eyebrow-dark">SIN RESULTADOS / 00</p>
-          <h3 id="emptyTitle">El catálogo está vacío.</h3>
-          <p id="emptyCopy">Las piezas publicadas aparecerán aquí cuando se conecte el inventario.</p>
+          <h3 id="emptyTitle">Cargando catálogo…</h3>
+          <p id="emptyCopy">Estamos consultando las piezas disponibles.</p>
           <button class="button button-dark" type="button" id="resetFilters">Ver todo</button>
         </div>
       </section>
@@ -170,89 +173,7 @@
           <a class="new-in-link" href="#coleccion">Explorar colección</a>
         </div>
 
-        <div class="editorial-grid">
-          <div class="editorial-top-products">
-            <article class="editorial-product-card reveal" data-product-id="tee-noche" data-order="01">
-              <div class="editorial-photo-wrap">
-                <button class="editorial-product-photo photo-product" type="button" data-open-product="tee-noche" aria-label="Ver Playera gráfica RIPNDIP">
-                  <img src="assets/ripndip-tee.jpg" alt="Playera gráfica RIPNDIP publicada por Dirtytask" loading="lazy">
-                  <span class="editorial-new-badge">DIRTYTASK / T-SHIRT</span>
-                </button>
-                <button class="editorial-save" type="button" data-save-product="tee-noche" aria-label="Guardar Playera gráfica RIPNDIP" aria-pressed="false">
-                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.5h10v13l-5-3.4-5 3.4z"></path></svg>
-                </button>
-                <button class="editorial-quick-add" type="button" data-open-product="tee-noche" aria-label="Elegir talla de Playera gráfica RIPNDIP">+</button>
-              </div>
-              <div class="editorial-product-meta"><h3>Playera gráfica RIPNDIP</h3><span>Q 299</span></div>
-            </article>
-
-            <article class="editorial-product-card reveal" data-product-id="tee-grateful" data-order="02">
-              <div class="editorial-photo-wrap">
-                <button class="editorial-product-photo photo-product" type="button" data-open-product="tee-grateful" aria-label="Ver Playera gráfica negra">
-                  <img src="assets/grateful-tee.jpg" alt="Playera negra con gráfico Grateful Dead publicada por Dirtytask" loading="lazy">
-                  <span class="editorial-new-badge">DIRTYTASK / T-SHIRT</span>
-                </button>
-                <button class="editorial-save" type="button" data-save-product="tee-grateful" aria-label="Guardar Playera gráfica negra" aria-pressed="false">
-                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.5h10v13l-5-3.4-5 3.4z"></path></svg>
-                </button>
-                <button class="editorial-quick-add" type="button" data-open-product="tee-grateful" aria-label="Elegir talla de Playera gráfica negra">+</button>
-              </div>
-              <div class="editorial-product-meta"><h3>Playera gráfica negra</h3><span>Q 349</span></div>
-            </article>
-
-            <article class="editorial-product-card reveal" data-product-id="tee-solar" data-order="03">
-              <div class="editorial-photo-wrap">
-                <button class="editorial-product-photo photo-product" type="button" data-open-product="tee-solar" aria-label="Ver Playera gráfica ilustrada">
-                  <img src="assets/graphic-tee.jpg" alt="Playera gráfica azul y amarilla publicada por Dirtytask" loading="lazy">
-                  <span class="editorial-new-badge">DIRTYTASK / T-SHIRT</span>
-                </button>
-                <button class="editorial-save" type="button" data-save-product="tee-solar" aria-label="Guardar Playera gráfica ilustrada" aria-pressed="false">
-                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.5h10v13l-5-3.4-5 3.4z"></path></svg>
-                </button>
-                <button class="editorial-quick-add" type="button" data-open-product="tee-solar" aria-label="Elegir talla de Playera gráfica ilustrada">+</button>
-              </div>
-              <div class="editorial-product-meta"><h3>Playera gráfica ilustrada</h3><span>Q 299</span></div>
-            </article>
-
-            <article class="editorial-product-card reveal" data-product-id="clogs-pokemon" data-order="04">
-              <div class="editorial-photo-wrap">
-                <button class="editorial-product-photo photo-product" type="button" data-open-product="clogs-pokemon" aria-label="Ver clogs Crocs x Pokémon">
-                  <img src="assets/pokemon-clogs.jpg" alt="Clogs Crocs x Pokémon de Pikachu, Jigglypuff y Gengar" loading="lazy">
-                </button>
-                <button class="editorial-save" type="button" data-save-product="clogs-pokemon" aria-label="Guardar clogs Crocs x Pokémon" aria-pressed="false">
-                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.5h10v13l-5-3.4-5 3.4z"></path></svg>
-                </button>
-                <button class="editorial-quick-add" type="button" data-open-product="clogs-pokemon" aria-label="Elegir talla de clogs Crocs x Pokémon">+</button>
-              </div>
-              <div class="editorial-product-meta"><h3>Clogs Crocs x Pokémon</h3><span>Q 699</span></div>
-            </article>
-          </div>
-
-          <div class="editorial-lower-grid">
-            <a class="editorial-feature reveal" href="#coleccion" aria-label="Explorar sneakers Adidas de Dirtytask">
-              <img src="assets/adidas-sneakers.jpg" alt="Sneakers Adidas blancos con franjas negras, producto publicado por Dirtytask" loading="lazy">
-              <span class="editorial-feature-shade" aria-hidden="true"></span>
-              <span class="editorial-feature-copy"><span>DIRTYTASK / ADIDAS</span><strong>La calle<br>marca el paso.</strong><i>Ver sneakers</i></span>
-              <span class="editorial-feature-index" aria-hidden="true">DT—05 / GT</span>
-            </a>
-
-            <div class="editorial-side-products">
-              <article class="editorial-product-card reveal" data-product-id="tumbler-ripndip" data-order="05">
-                <div class="editorial-photo-wrap">
-                  <button class="editorial-product-photo photo-product" type="button" data-open-product="tumbler-ripndip" aria-label="Ver vaso térmico RIPNDIP">
-                    <img src="assets/ripndip-tumbler.jpg" alt="Vaso térmico RIPNDIP con ilustración de gato, producto publicado por Dirtytask" loading="lazy">
-                    <span class="editorial-new-badge">DIRTYTASK / ACCESORIO</span>
-                  </button>
-                  <button class="editorial-save" type="button" data-save-product="tumbler-ripndip" aria-label="Guardar vaso térmico RIPNDIP" aria-pressed="false">
-                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.5h10v13l-5-3.4-5 3.4z"></path></svg>
-                  </button>
-                  <button class="editorial-quick-add" type="button" data-open-product="tumbler-ripndip" aria-label="Ver vaso térmico RIPNDIP">+</button>
-                </div>
-                <div class="editorial-product-meta"><h3>Vaso térmico RIPNDIP</h3><span>Q 399</span></div>
-              </article>
-            </div>
-          </div>
-        </div>
+        <div class="editorial-grid"></div>
       </section>
 
       <section class="instagram-section section-wrap" id="instagram" aria-labelledby="instagramTitle">
@@ -268,32 +189,8 @@
           </div>
         </div>
 
-        <div class="instagram-track" id="instagramTrack" aria-label="Videos de TikTok de Dirtytask">
-          <article class="instagram-tile instagram-video-tile reveal">
-            <iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/7326274171879591173?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;play_button=0&amp;progress_bar=0&amp;volume_control=0&amp;description=0&amp;music_info=0&amp;rel=0" title="TikTok de Dirtytask: video de calzado" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            <a class="instagram-tile-type" href="https://www.tiktok.com/@dirtytask/video/7326274171879591173" target="_blank" rel="noopener noreferrer" aria-label="Ver video de Dirtytask en TikTok">TIKTOK</a>
-          </article>
-          <article class="instagram-tile instagram-video-tile reveal">
-            <iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/7322528374738488581?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;play_button=0&amp;progress_bar=0&amp;volume_control=0&amp;description=0&amp;music_info=0&amp;rel=0" title="TikTok de Dirtytask: video de sneakers" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            <a class="instagram-tile-type" href="https://www.tiktok.com/@dirtytask/video/7322528374738488581" target="_blank" rel="noopener noreferrer" aria-label="Ver video de Dirtytask en TikTok">TIKTOK</a>
-          </article>
-          <article class="instagram-tile instagram-video-tile reveal">
-            <iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/7265850704454077702?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;play_button=0&amp;progress_bar=0&amp;volume_control=0&amp;description=0&amp;music_info=0&amp;rel=0" title="TikTok de Dirtytask: video de RIPNDIP" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            <a class="instagram-tile-type" href="https://www.tiktok.com/@dirtytask/video/7265850704454077702" target="_blank" rel="noopener noreferrer" aria-label="Ver video de Dirtytask en TikTok">TIKTOK</a>
-          </article>
-          <article class="instagram-tile instagram-video-tile reveal">
-            <iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/7689297049241603335?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;play_button=0&amp;progress_bar=0&amp;volume_control=0&amp;description=0&amp;music_info=0&amp;rel=0" title="TikTok de Dirtytask: video de tenis" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            <a class="instagram-tile-type" href="https://www.tiktok.com/@dirtytask/video/7689297049241603335" target="_blank" rel="noopener noreferrer" aria-label="Ver video de Dirtytask en TikTok">TIKTOK</a>
-          </article>
-          <article class="instagram-tile instagram-video-tile reveal">
-            <iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/7663144684067343624?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;play_button=0&amp;progress_bar=0&amp;volume_control=0&amp;description=0&amp;music_info=0&amp;rel=0" title="TikTok de Dirtytask: video de calzado" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            <a class="instagram-tile-type" href="https://www.tiktok.com/@dirtytask/video/7663144684067343624" target="_blank" rel="noopener noreferrer" aria-label="Ver video de Dirtytask en TikTok">TIKTOK</a>
-          </article>
-          <article class="instagram-tile instagram-video-tile reveal">
-            <iframe class="tiktok-embed-player" data-src="https://www.tiktok.com/player/v1/7662516090895043848?autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;play_button=0&amp;progress_bar=0&amp;volume_control=0&amp;description=0&amp;music_info=0&amp;rel=0" title="TikTok de Dirtytask: video de ropa" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-            <a class="instagram-tile-type" href="https://www.tiktok.com/@dirtytask/video/7662516090895043848" target="_blank" rel="noopener noreferrer" aria-label="Ver video de Dirtytask en TikTok">TIKTOK</a>
-          </article>
-        </div>
+        <p id="publicContentStatus" role="status">Cargando contenido…</p>
+        <div class="instagram-track" id="instagramTrack" aria-label="Videos de Dirtytask"></div>
 
         <div class="instagram-follow reveal">
           <span class="tiktok-glyph" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M11.1 2.2h3c.2 1.8 1.2 3.2 3 4v3a8.4 8.4 0 0 1-3-.9v5.3a5.4 5.4 0 1 1-4.5-5.3v3.2a2.3 2.3 0 1 0 1.5 2.2z"></path></svg></span>

@@ -14,13 +14,17 @@ Catálogo web estático en español para Dirtytask Clothing Store, Guatemala. El
 
 ## Uso local
 
-Abre `index.html` en Chrome o Edge. No necesita instalación ni proceso de compilación. La sección de videos y las tipografías de Google Fonts requieren conexión a internet.
+Sirve esta carpeta desde un servidor HTTP local o tu hosting y abre `index.html` en Chrome o Edge. No necesita compilación. Supabase, los videos y las tipografías de Google Fonts requieren conexión a internet.
 
-El catálogo, los precios y el checkout son una maqueta front-end: no hay inventario, pagos, reservas ni pedidos conectados a un servicio real.
+La tienda pública lee catálogo, variantes, imágenes, lanzamientos y contenido desde Supabase. La bolsa se conserva en el navegador. El resumen del checkout consulta precios, disponibilidad, departamentos, tarifas y métodos habilitados; todavía no registra pedidos, reservas ni pagos. Consulta [la integración pública](docs/storefront-integration.md).
 
 ### Panel de demostración
 
-Abre `admin.html` e ingresa cualquier correo válido y una clave de prueba. Funciona tanto localmente como en GitHub Pages. No autentica usuarios ni guarda contraseñas: los cambios del panel se conservan únicamente en el navegador utilizado y no publican cambios para otros visitantes.
+El panel `admin.html` usa Supabase Auth y requiere un socio activo de operaciones o finanzas. El catálogo del administrador consulta categorías, productos, variantes, imágenes y lanzamientos desde Supabase. Operaciones puede crear, editar y archivar productos y cerrar lanzamientos; Finanzas solo los consulta. Para activar el guardado, instala la migración indicada en [la integración del catálogo](docs/catalog-integration.md).
+
+Contenido y configuración también consultan Supabase: textos, redes sociales, videos, tarifas de envío y métodos de pago. Operaciones guarda cada sección con su botón; Finanzas puede consultarla. Activa este guardado con `sql/store-integration.sql`; consulta [la guía de contenido y configuración](docs/store-integration.md).
+
+El catálogo público y el resumen del checkout también consultan estos datos mediante un cliente anónimo separado de la sesión administrativa. Todavía no generan pedidos reales. La edición del perfil sigue pendiente de integración; ventas y contabilidad siguen en demostración.
 
 ### Verificación del panel
 
