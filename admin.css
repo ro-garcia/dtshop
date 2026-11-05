@@ -58,6 +58,7 @@ button { color: inherit; }
 .admin-nav-item:hover { color: #fff; background: #ffffff0a; }
 .admin-nav-item.is-active { color: #fff; background: #ffffff13; box-shadow: inset 2px 0 var(--admin-red); }
 .nav-icon { width: 16px; color: #aaa9a0; font-size: 15px; text-align: center; }
+.nav-icon svg { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .nav-count { margin-left: auto; color: #999991; font: 9px var(--admin-mono); }
 .sidebar-bottom { display: grid; gap: 14px; margin-top: auto; padding: 17px 10px 4px; border-top: 1px solid #ffffff16; }
 .store-session-label { width: max-content; padding: 6px 8px; color: #d4d2c9; background: #ffffff0c; font: 8px/1 var(--admin-mono); letter-spacing: .08em; }
