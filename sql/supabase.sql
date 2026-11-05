@@ -1233,7 +1233,7 @@ INSERT INTO store_setting (shipping_guatemala_cents, shipping_other_cents) VALUE
 INSERT INTO payment_method (code, label, detail, enabled, sort_order) VALUES
   ('cash', 'Efectivo', 'Pago contra entrega', true, 1),
   ('visa_installments', 'Visa cuotas', '3, 6, 9 o 12 cuotas', true, 2),
-  ('visalink', 'Tarjeta de crÃ©dito', 'Visalink', true, 3);
+  ('visalink', 'Tarjeta de crédito', 'Visalink', true, 3);
 
 INSERT INTO content_block (hero_copy, feed_copy, instagram_url, tiktok_url) VALUES (
   'Streetwear, cultura sneaker y piezas con actitud. Encuentra tu prÃ³ximo outfit y descubre la selecciÃ³n de Dirtytask Store. TambiÃ©n te traemos la prenda que tÃº quieras.',

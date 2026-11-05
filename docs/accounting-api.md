@@ -1,5 +1,7 @@
 # Integración futura de Contabilidad
 
+> La integración está implementada en `finance-api.js`: consulta [la guía financiera actual](finance-integration.md). Este documento conserva el contrato y reglas del prototipo anterior.
+
 > Actualización: el contrato ampliado y las reglas vigentes de cuotas sin desglose, cuentas y liquidaciones están en [cash-api.md](cash-api.md). Las reglas de desglose descritas abajo se conservan únicamente para interpretar los registros anteriores del prototipo.
 
 La versión actual es frontend sin persistencia: `accounting.js` crea un repositorio en memoria de `accounting-data.js`. No usa el localStorage del catálogo. Al recargar se regeneran tres obligaciones y tres movimientos ficticios. No se envían datos ni archivos a un servidor.

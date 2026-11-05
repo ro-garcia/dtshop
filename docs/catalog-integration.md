@@ -33,7 +33,7 @@ Storage y PostgreSQL son servicios separados: si la subida funciona y luego fall
 
 ## Alcance
 
-La integración del administrador se complementa con [contenido y configuración](store-integration.md) y con [la tienda pública y el resumen del checkout](storefront-integration.md). El registro de pedidos y los módulos financieros requieren sus propios recorridos de integración. El navegador no contiene claves administrativas ni de servicio.
+La integración del administrador se complementa con [contenido y configuración](store-integration.md), [la tienda pública](storefront-integration.md), [pedidos](orders-integration.md) y [contabilidad](finance-integration.md). El navegador no contiene claves administrativas ni de servicio.
 
 ## Verificación local
 

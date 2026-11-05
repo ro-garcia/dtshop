@@ -2,8 +2,12 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const C = require('../cash-data.js');
 const today = '2026-11-03';
+test('new repositories contain no preloaded accounts, sales or movements',async()=>{
+  const snapshot=await C.createRepository({today}).list();
+  for(const rows of Object.values(snapshot).filter(Array.isArray))assert.deepEqual(rows,[]);
+});
 async function setup() {
-  const repo = C.createRepository({ seed: false, today });
+  const repo = C.createRepository({ today });
   const bank = await repo.createAccount({ name: 'Banrural', bank: 'Banrural', type: 'bank', currency: 'GTQ', openingBalance: '0', startDate: '2026-10-01' });
   const cash = await repo.createAccount({ name: 'Caja', type: 'cash', currency: 'GTQ', openingBalance: '0', startDate: '2026-10-01' });
   const sale = amount => repo.createSale({ channel: 'external', currency: 'GTQ', date: '2026-10-01', shippingMode: 'extra', shipping: '35', lines: [{ name: 'Prenda', qty: '1', price: amount }] });
@@ -73,7 +77,7 @@ test('amount-only loan payments debit the source once, preserve unknown principa
   const A = require('../accounting-data.js');
   const { repo, bank } = await setup();
   await repo.addEntry({ accountId: bank.id, date: today, direction: 'in', category: 'contribution', amount: '1500', concept: 'Capital' });
-  const debt = A.createRepository({ seed: false, today, cashRepository: repo });
+  const debt = A.createRepository({ today, cashRepository: repo });
   const o = await debt.createObligation({ bank: 'Banco', name: 'Préstamo', reference: 'T1', type: 'loan', currency: 'GTQ', startDate: today, openingBalance: '5000', installment: '1000', dueDay: '30' });
   await debt.addMovement({ obligationId: o.id, accountId: bank.id, type: 'payment', date: today, period: '2026-11', total: '1000' });
   assert.equal((await repo.accountLedger(bank.id)).balance, 50000);

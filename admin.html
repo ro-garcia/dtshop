@@ -17,11 +17,15 @@
   <script src="catalog-api.js" defer></script>
   <script src="store-api.js" defer></script>
   <script src="admin.js" defer></script>
+  <script src="orders-api.js" defer></script>
+  <script src="orders.js" defer></script>
   <script src="admin-auth.js" defer></script>
   <script src="accounting-data.js" defer></script>
   <script src="cash-data.js" defer></script>
+  <script src="finance-api.js" defer></script>
   <script src="cash.js" defer></script>
   <script src="accounting.js" defer></script>
+  <script src="finance-approvals.js" defer></script>
 </head>
 <body class="admin-body" id="inicio">
   <main class="login-screen" id="loginScreen">
@@ -41,7 +45,7 @@
         <button class="admin-button admin-button-dark login-submit" type="submit">Entrar al panel</button>
         <p class="login-error" id="loginError" role="alert" hidden></p>
       </form>
-      <div class="demo-notice" id="demoNotice"><strong>Acceso de socios.</strong> Entra con tu cuenta de Supabase. Los productos, ventas y contabilidad todavía son datos de demostración.</div>
+      <div class="access-notice" id="accessNotice"><strong>Acceso de socios.</strong> Entra con tu cuenta de Supabase. El acceso está reservado a los socios de la tienda.</div>
       <a class="login-return" href="index.html">Volver a Dirtytask Store</a>
     </section>
     <p class="login-foot">DIRTYTASK CLOTHING STORE <span>·</span> GUATEMALA / 502</p>
@@ -65,7 +69,7 @@
         <button class="admin-nav-item" type="button" data-view="settings"><span class="nav-icon">⚙</span>Configuración</button>
       </nav>
       <div class="sidebar-bottom">
-       <!----> <span class="demo-pill"><i></i>Datos de demostración</span>
+       <!----> <span class="store-session-label"><i></i>Gestión de tienda</span>
         <button class="sidebar-logout" id="logoutButton" type="button">Cerrar sesión</button>
         <a href="index.html">Volver a la tienda</a>
       </div>
@@ -74,9 +78,9 @@
     <main class="admin-main">
       <header class="admin-topbar">
         <div><p class="topbar-overline"></p><h2 id="viewTitle">Resumen</h2></div>
-        <div class="topbar-actions"><span class="local-state"><i></i> <span id="welcomeName">Bienvenido</span></span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" id="accountAvatar" type="button" aria-label="Editar usuario">DT</button></div>
+        <div class="topbar-actions"><button id="refreshCatalog" class="refresh-icon" type="button" title="Actualizar catálogo" aria-label="Actualizar catálogo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button><span class="local-state"><i></i> <span id="welcomeName">Bienvenido</span></span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" id="accountAvatar" type="button" aria-label="Editar usuario">DT</button></div>
       </header>
-      <div class="auth-data-notice"><p id="catalogLoadStatus" role="status">Catálogo pendiente de carga.</p><button id="refreshCatalog" class="admin-button admin-button-quiet" type="button">Actualizar catálogo</button><p>Catálogo conectado a Supabase · Ventas y contabilidad en demostración.</p></div>
+      <p id="catalogLoadStatus" class="section-feedback" role="status"></p>
 
       <section class="admin-view" id="view-overview">
         <div class="welcome-row"><div><p class="admin-kicker">LUNES <span id="todayDate"></span> · GTQ</p><h1>BIENVENIDO DE NUEVO ,<br><em>A SEGUIR ROMPIENDOLA!</em></h1><p>Panel administrativo para la gestión de la tienda.</p></div><a class="admin-button admin-button-dark" href="index.html" target="_blank" rel="noopener">ver la tienda</a></div>
@@ -130,23 +134,25 @@
       </section>
 
       <section class="admin-view" id="view-orders" hidden>
-        <div class="view-intro"><div><p class="admin-kicker">VENTAS / RESERVAS</p><h1>Pedidos<span>.</span></h1><p>Pedidos recibidos desde la tienda y solicitudes de reserva.</p></div></div>
-        <div class="orders-summary"><article class="admin-panel"><span>POR CONFIRMAR</span><strong>0</strong></article><article class="admin-panel"><span>EN PREPARACIÓN</span><strong>0</strong></article><article class="admin-panel"><span>ENTREGADOS</span><strong>0</strong></article></div>
-        <div class="empty-admin"><span class="empty-admin-icon">▤</span><h2>Aún no hay pedidos conectados.</h2><p>El checkout del sitio es una maqueta y no envía formularios ni datos de facturación. Aquí aparecerán los pedidos cuando se conecte un backend.</p></div>
+        <div class="view-intro"><div><p class="admin-kicker">VENTAS / RESERVAS</p><h1>Pedidos<span>.</span></h1><p>Revisa cada compra y coordina su entrega.</p></div><button id="refreshOrders" class="refresh-icon" type="button" title="Actualizar pedidos" aria-label="Actualizar pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button></div>
+        <p id="ordersLoadStatus" class="section-feedback" role="status"></p>
+        <div class="orders-summary"><article class="admin-panel"><span>POR CONFIRMAR</span><strong id="ordersPending">0</strong></article><article class="admin-panel"><span>EN PREPARACIÓN</span><strong id="ordersPreparing">0</strong></article><article class="admin-panel"><span>ENTREGADOS</span><strong id="ordersDelivered">0</strong></article></div>
+        <div class="orders-toolbar"><label class="admin-search"><span aria-hidden="true">⌕</span><input id="ordersSearch" type="search" placeholder="Buscar cliente, teléfono o pedido" aria-label="Buscar pedidos"></label><label class="orders-filter"><span>Estado</span><select id="ordersStatusFilter"><option value="all">Todos</option><option value="pending">Por confirmar</option><option value="confirmed">Confirmados</option><option value="preparing">En preparación</option><option value="shipped">Enviados</option><option value="delivered">Entregados</option><option value="cancelled">Cancelados</option></select></label><span id="ordersResultCount" class="toolbar-count"></span></div>
+        <div id="ordersList" class="orders-list"></div>
       </section>
 
       <section class="admin-view" id="view-content" hidden>
-        <div class="auth-data-notice"><p id="contentLoadStatus" role="status">Contenido pendiente de carga.</p><button id="refreshContent" type="button" class="admin-button admin-button-quiet">Actualizar contenido</button></div>
-        <div class="view-intro"><div><p class="admin-kicker">HOME / REDES SOCIALES</p><h1>Contenido<span>.</span></h1><p>Actualiza el mensaje de la pagina principal y los videos del feed.</p></div><button class="admin-button admin-button-dark" id="saveContentButton" type="button">Guardar contenido</button></div>
+        <p id="contentLoadStatus" class="section-feedback" role="status"></p>
+        <div class="view-intro"><div><p class="admin-kicker">HOME / REDES SOCIALES</p><h1>Contenido<span>.</span></h1><p>Actualiza el mensaje de la pagina principal y los videos del feed.</p></div> <div class="view-actions"><button id="refreshContent" class="refresh-icon" type="button" title="Actualizar contenido" aria-label="Actualizar contenido"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button><button class="admin-button admin-button-dark" id="saveContentButton" type="button">Guardar contenido</button></div></div>
         <div class="content-grid">
-          <form class="admin-panel content-form" id="contentForm"><div class="panel-heading"><div><p class="admin-kicker">PORTADA / 01</p><h3>Mensaje de la tienda</h3></div></div><label>Texto principal<textarea name="heroCopy" rows="3" maxlength="240"></textarea></label><label>Texto de contenido<textarea name="feedCopy" rows="2" maxlength="140"></textarea></label><label>Instagram de Dirtytask<input name="instagramUrl" type="url"></label><label>TikTok de Dirtytask<input name="tiktokUrl" type="url"></label></form>
+          <form class="admin-panel content-form" id="contentForm"><div class="panel-heading"><div><p class="admin-kicker">PORTADA / 01</p><h3>Mensaje de la tienda</h3></div></div><div class="banner-editor"><div class="banner-preview"><img id="heroBannerPreview" src="assets/campaign-city.jpg" alt="Vista previa del banner principal"><span>PORTADA DE LA TIENDA</span></div><div class="banner-editor-actions"><label class="admin-button admin-button-quiet banner-file">Cambiar imagen<input id="heroBannerInput" type="file" accept="image/jpeg,image/png,image/webp"></label><button id="resetHeroBanner" class="text-button" type="button">Usar imagen original</button></div><p id="heroBannerStatus" class="field-hint" role="status">JPG, PNG o WEBP · Hasta 15 MB. Recomendado: 1600 px de ancho o más.</p></div><label>Texto principal<textarea name="heroCopy" rows="3" maxlength="240"></textarea></label><label>Texto de contenido<textarea name="feedCopy" rows="2" maxlength="140"></textarea></label><label>Instagram de Dirtytask<input name="instagramUrl" type="url"></label><label>TikTok de Dirtytask<input name="tiktokUrl" type="url"></label></form>
           <div class="admin-panel content-videos"><div class="panel-heading"><div><p class="admin-kicker">REDES / 02</p><h3>Videos del feed</h3></div><button class="text-button" id="addVideoButton" type="button">＋ Añadir</button></div><div id="videoList"></div><p class="field-hint">Pegar el enlace público de un video de TikTok o Reel de Instagram.</p></div>
         </div>
       </section>
 
       <section class="admin-view" id="view-settings" hidden>
-        <div class="auth-data-notice"><p id="settingsLoadStatus" role="status">Configuración pendiente de carga.</p><button id="refreshSettings" type="button" class="admin-button admin-button-quiet">Actualizar configuración</button></div>
-        <div class="view-intro"><div><p class="admin-kicker">OPERACIÓN / PREFERENCIAS</p><h1>Configuración<span>.</span></h1><p>Usuario de la tienda, envíos y métodos de pago.</p></div><button class="admin-button admin-button-dark" id="saveSettingsButton" type="button">Guardar cambios</button></div>
+        <p id="settingsLoadStatus" class="section-feedback" role="status"></p>
+        <div class="view-intro"><div><p class="admin-kicker">OPERACIÓN / PREFERENCIAS</p><h1>Configuración<span>.</span></h1><p>Usuario de la tienda, envíos y métodos de pago.</p></div> <div class="view-actions"><button id="refreshSettings" class="refresh-icon" type="button" title="Actualizar configuración" aria-label="Actualizar configuración"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button><button class="admin-button admin-button-dark" id="saveSettingsButton" type="button">Guardar cambios</button></div></div>
         <div class="settings-grid">
           <form class="admin-panel profile-panel" id="profileForm">
             <div class="panel-heading"><div><p class="admin-kicker">CUENTA / USUARIO</p><h3>Editar usuario</h3></div></div>
@@ -162,12 +168,13 @@
             <p class="field-hint">Este nombre y esta imagen identifican la sesión del panel en este navegador.</p>
           </form>
           <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="0.01" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="0.01" required></span></label><p class="field-hint">Guarda las tarifas en Supabase con el botón Guardar cambios. El checkout público todavía requiere integración.</p></form>
-          <form class="admin-panel settings-form" id="paymentForm"><div class="panel-heading"><div><p class="admin-kicker">CHECKOUT / PAGO</p><h3>Métodos disponibles</h3></div></div><label class="toggle-row"><span><strong>Efectivo</strong><small>Pago contra entrega</small></span><input name="cash" type="checkbox"></label><label class="toggle-row"><span><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span><input name="visaInstallments" type="checkbox"></label><label class="toggle-row"><span><strong>Tarjeta de crédito</strong><small>Visalink</small></span><input name="visalink" type="checkbox"></label><p class="field-hint">Esta maqueta solo permite seleccionar un método; no procesa pagos.</p></form>
-          <div class="admin-panel settings-meta"><div class="panel-heading"><div><p class="admin-kicker">TIENDA / IDENTIDAD</p><h3>Dirtytask Clothing Store</h3></div></div><p>Guatemala <span>GT / 502</span></p><p>Moneda <span>GTQ</span></p><p>Checkout <span class="status-pill status-warning">DEMO</span></p></div>
+          <form class="admin-panel settings-form" id="paymentForm"><div class="panel-heading"><div><p class="admin-kicker">CHECKOUT / PAGO</p><h3>Métodos disponibles</h3></div></div><label class="toggle-row"><span><strong>Efectivo</strong><small>Pago contra entrega</small></span><input name="cash" type="checkbox"></label><label class="toggle-row"><span><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span><input name="visaInstallments" type="checkbox"></label><label class="toggle-row"><span><strong>Tarjeta de crédito</strong><small>Visalink</small></span><input name="visalink" type="checkbox"></label><p class="field-hint">Los métodos habilitados se muestran al completar el pedido.</p></form>
+          <div class="admin-panel settings-meta"><div class="panel-heading"><div><p class="admin-kicker">TIENDA / IDENTIDAD</p><h3>Dirtytask Clothing Store</h3></div></div><p>Guatemala <span>GT / 502</span></p><p>Moneda <span>GTQ</span></p><p>Checkout <span>Pedidos en línea</span></p></div>
         </div>
       </section>
 
     <section class="admin-view" id="view-accounting" hidden>
+      <div class="finance-sync"><p id="financeLoadStatus" class="section-feedback" role="status"></p><button id="refreshFinance" class="refresh-icon" type="button" aria-label="Actualizar contabilidad" title="Actualizar contabilidad">↻</button></div>
       <nav class="cash-nav" id="financeNav" aria-label="Secciones de contabilidad">
         <button type="button" data-cash-tab="summary" aria-current="page">Resumen</button>
         <button type="button" data-cash-tab="accounts">Cuentas y caja</button>
@@ -175,7 +182,12 @@
         <button type="button" data-cash-tab="courier">Mensajería</button>
         <button type="button" data-cash-tab="entries">Ingresos y gastos</button>
         <button type="button" data-cash-tab="debt">Obligaciones</button>
+        <button type="button" data-cash-tab="approvals">Verificación y aprobaciones <span id="financePendingCount" class="nav-count" hidden>0</span></button>
       </nav>
+      <section id="financeApprovalPanel" aria-labelledby="financeApprovalTitle" hidden>
+        <div class="view-intro"><div><p class="admin-kicker">CONTROL / SEGUIMIENTO</p><h1 id="financeApprovalTitle">Verificación y aprobaciones<span>.</span></h1><p>Revisa las solicitudes, consulta su estado y verifica los cierres de cuentas.</p></div></div>
+        <div id="financeApprovals" aria-live="polite"></div>
+      </section>
       <div id="cashRoot"><p>Cargando movimientos…</p></div>
       <div id="accountingRoot" hidden aria-live="polite"><p>Cargando contabilidad…</p></div>
     </section>
@@ -187,29 +199,7 @@
     </main>
   </div>
 
- <footer class="site-footer">
-      
 
-      <div class="footer-content">
-        <div class="footer-newsletter">
-          <p class="footer-overline">FRASE DEL DIA:</p>
-          <h2>*************************************.<br>*******************</h2>
-
-          <!--Frase: desde aqui empieza la parte de la frase-->
-
-          
-         
-        </div>
-        
-        </div>
-
-      <a class="footer-wordmark" href="#inicio" aria-label="Dirtytask, volver al inicio">
-        <img src="assets/dirtytask-flame-d-transparent.png" alt="">
-        <span>irtytask</span>
-      </a>
-
-      <div class="footer-bottom"><span>© 2026 DIRTYTASK CLOTHING STORE</span><a class="back-top" href="#inicio">VOLVER ARRIBA</a></div>
-    </footer>
 
 
 

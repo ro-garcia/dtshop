@@ -33,11 +33,16 @@ window.storeApi = (() => {
   }
   return Object.freeze({
     async readContent() {
+      let bannerSupported=true;
       const [block, videos] = await Promise.all([
-        singleton('content_block', 'id,hero_copy,feed_copy,instagram_url,tiktok_url,updated_at'),
+        singleton('content_block', 'id,hero_copy,feed_copy,instagram_url,tiktok_url,updated_at,hero_image_key').catch(error=>{
+          if(!['42703','PGRST204'].includes(error.code))throw error;
+          bannerSupported=false;
+          return singleton('content_block','id,hero_copy,feed_copy,instagram_url,tiktok_url,updated_at');
+        }),
         rows('content_video', 'id,url,sort_order', ['sort_order', 'id'])
       ]);
-      return {block, videos};
+      return {block, videos, bannerSupported};
     },
     async readSettings() {
       const [settings, payments] = await Promise.all([
@@ -49,9 +54,18 @@ window.storeApi = (() => {
     saveContent(content) {
       return rpc('save_store_content', {p_content: {
         hero_copy: content.heroCopy, feed_copy: content.feedCopy,
+        hero_image_key: content.heroImageKey,
         instagram_url: content.instagramUrl, tiktok_url: content.tiktokUrl,
         videos: content.videos, expected_updated_at: content.updatedAt
       }});
+    },
+    async uploadBanner(file,userId) {
+      const extension={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type];
+      if(!extension||file.size>15*1024*1024)throw new Error('Elige una imagen JPG, PNG o WEBP de hasta 15 MB.');
+      const key=`${userId}/banner/${crypto.randomUUID()}.${extension}`;
+      const {error}=await window.dirtytaskSupabase.storage.from('dtshop-products').upload(key,file,{contentType:file.type,upsert:false});
+      if(error)throw error;
+      return key;
     },
     saveSettings(settings) {
       return rpc('save_store_settings', {p_settings: {

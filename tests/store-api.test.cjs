@@ -32,3 +32,9 @@ test('save payloads convert cents and method codes and report missing migrations
  error={code:'PGRST202'};await assert.rejects(()=>window.storeApi.saveContent({}),/store-integration.sql/);
  error=Error('Denied');await assert.rejects(()=>window.storeApi.saveContent({}),/Denied/);
 });
+test('missing banner column falls back to existing content instead of breaking the editor',async()=>{
+ let selects=0;
+ const window={dirtytaskSupabase:{schema(){return {from(table){return {select(columns){this.columns=columns;selects++;return this},eq(){return this},order(){return this},async single(){return this.columns.includes('hero_image_key')?{error:{code:'42703'}}:{data:{id:1,hero_copy:'Conservado'}}},async range(){return {data:[]}}}}}}}};
+ vm.runInNewContext(source,{window});
+ const content=await window.storeApi.readContent();assert.equal(content.bannerSupported,false);assert.equal(content.block.hero_copy,'Conservado');assert.equal(selects,3);
+});

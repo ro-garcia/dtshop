@@ -14,6 +14,7 @@
     <script src="supabase-config.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.js" defer></script>
     <script src="storefront-api.js" defer></script>
+    <script src="checkout-api.js" defer></script>
     <script src="checkout.js" defer></script>
   </head>
   <body class="checkout-body">
@@ -37,8 +38,8 @@
         <span><i>01</i> BOLSA</span><b aria-hidden="true"></b><span class="is-current"><i>02</i> FACTURACIÓN</span><b aria-hidden="true"></b><span><i>03</i> PEDIDO</span>
       </div>
 
-      <p id="checkoutLoadStatus" role="status">Consultando precios y envío…</p>
-      <button id="retryCheckout" class="text-link" type="button" hidden>Reintentar</button>
+      <div class="checkout-feedback"><p id="checkoutLoadStatus" role="status" data-state="quiet">Consultando precios y envío…</p><button id="retryCheckout" class="checkout-refresh" type="button" hidden>Revisar disponibilidad</button></div>
+      <section id="orderConfirmation" class="order-receipt" tabindex="-1" hidden aria-label="Comprobante del pedido"></section>
       <section class="checkout-layout" id="checkoutLayout" aria-labelledby="checkoutTitle" hidden>
         <div class="checkout-form-column">
           <div class="checkout-heading">
@@ -51,23 +52,23 @@
             <div class="billing-fields">
               <div class="billing-field">
                 <label for="firstName">Nombre <span>*</span></label>
-                <input id="firstName" name="firstName" type="text" autocomplete="given-name" required>
+                <input id="firstName" name="firstName" type="text" autocomplete="given-name" maxlength="80" required>
               </div>
               <div class="billing-field">
                 <label for="lastName">Apellidos <span>*</span></label>
-                <input id="lastName" name="lastName" type="text" autocomplete="family-name" required>
+                <input id="lastName" name="lastName" type="text" autocomplete="family-name" maxlength="80" required>
               </div>
               <div class="billing-field billing-field-wide">
                 <label for="streetAddress">Dirección de la calle <span>*</span></label>
-                <input id="streetAddress" name="streetAddress" type="text" autocomplete="address-line1" placeholder="Número de casa y nombre de la calle" required>
+                <input id="streetAddress" name="streetAddress" type="text" autocomplete="address-line1" placeholder="Número de casa y nombre de la calle" maxlength="160" required>
               </div>
               <div class="billing-field billing-field-wide">
                 <label for="neighborhood">Colonia <span>*</span></label>
-                <input id="neighborhood" name="neighborhood" type="text" autocomplete="address-line2" required>
+                <input id="neighborhood" name="neighborhood" type="text" autocomplete="address-line2" maxlength="120" required>
               </div>
               <div class="billing-field billing-field-wide">
                 <label for="municipality">Municipio <span>*</span></label>
-                <input id="municipality" name="municipality" type="text" autocomplete="address-level2" required>
+                <input id="municipality" name="municipality" type="text" autocomplete="address-level2" maxlength="120" required>
               </div>
               <div class="billing-field billing-field-wide">
                 <label for="department">Departamento <span>*</span></label>
@@ -77,11 +78,11 @@
               </div>
               <div class="billing-field billing-field-wide">
                 <label for="phone">Teléfono <span>*</span></label>
-                <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="5555-5555" required>
+                <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="5555-5555" minlength="8" maxlength="20" required>
               </div>
               <div class="billing-field billing-field-wide">
                 <label for="nit">Número de NIT <small>(opcional)</small></label>
-                <input id="nit" name="nit" type="text" autocomplete="off" placeholder="Dejar en blanco para Consumidor Final">
+                <input id="nit" name="nit" type="text" autocomplete="off" minlength="2" maxlength="20" placeholder="Dejar en blanco para Consumidor Final">
               </div>
               <fieldset class="payment-method-fieldset billing-field-wide">
                 <legend>Método de pago <span>*</span></legend>
@@ -106,9 +107,9 @@
             <div class="order-total"><dt>Total</dt><dd id="orderTotal">Q 0</dd></div>
           </dl>
           <p class="shipping-note" id="shippingNote">Elige tu departamento para calcular el envío.</p>
-          <button class="button button-light place-order-button" type="submit" form="billingForm" disabled>Consultar disponibilidad</button>
+          <button class="button button-light place-order-button" type="submit" form="billingForm" disabled>Enviar pedido</button>
           <p class="checkout-status" id="checkoutStatus" role="status" tabindex="-1" hidden></p>
-          <p class="privacy-note">Tus datos permanecen en esta página. No se guardan ni se envían.</p>
+          <p class="privacy-note">Al enviar, Dirtytask recibirá tus datos de contacto y entrega para gestionar el pedido. No se solicitan datos de tarjeta ni se cobra en esta página.</p>
         </aside>
       </section>
 

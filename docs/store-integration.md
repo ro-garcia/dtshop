@@ -6,6 +6,7 @@ Esta integración reutiliza el cliente de `admin-auth.js`, mediante `store-api.j
 |---|---|
 | `content_block` | Lectura y guardado de textos y enlaces sociales del registro `id = 1` |
 | `content_video` | Lectura, orden y guardado de hasta 12 videos distintos de TikTok o Instagram |
+| `content_block.hero_image_key` | Imagen del banner principal desde Storage, con `sql/banner-integration.sql` |
 | `store_setting` | Lectura y guardado de las dos tarifas de envío del registro `id = 1` |
 | `payment_method` | Lectura de métodos y actualización de `enabled` para efectivo, Visa cuotas y Visalink |
 
@@ -21,6 +22,18 @@ La lectura funciona con las tablas originales. Sin la nueva migración, el inten
 
 ## Comportamiento
 
+### Banner principal
+
+Después de la migración de contenido, ejecuta **todo `sql/banner-integration.sql`** en Supabase. Agrega la ruta de la imagen al bloque de contenido y actualiza su guardado sin reemplazar textos ni videos. La migración se puede repetir. Si todavía no está instalada, los textos y videos siguen funcionando y los controles de imagen indican cómo habilitarlos.
+
+En **Contenido → Mensaje de la tienda**, usa **Cambiar imagen** para seleccionar un JPG, PNG o WEBP de hasta 15 MB. La vista previa permite revisar la selección antes de **Guardar contenido**. La imagen se sube al bucket público existente `dtshop-products`, con una ruta única del socio de operaciones. Una lectura fallida o un guardado fallido no descartan el formulario; si ya se subió la imagen, reintentar el guardado reutiliza esa subida.
+
+**Usar imagen original** prepara el regreso a `assets/campaign-city.jpg`; también requiere guardar. Los visitantes ven el cambio al recargar la página principal. Los archivos anteriores se conservan en Storage. Finanzas puede consultar la imagen, pero no cambiarla.
+
+### Mensajes y actualización
+
+Los avisos amarillos de carga se eliminaron. La carga normal se anuncia de forma accesible sin ocupar espacio, los errores se muestran junto a su sección y los controles de recarga son iconos discretos con etiqueta accesible. Al guardar, el botón confirma brevemente **Guardado**.
+
 El guardado es explícito: cambiar un campo, agregar un video o quitarlo prepara el formulario. Para persistir los cambios debes pulsar el botón de la sección. Los enlaces inválidos o repetidos se rechazan; no se eliminan silenciosamente.
 
 El backend guarda textos y videos en una transacción; tarifas y métodos de pago se guardan en otra. Si falla una relación o validación, se revierte todo ese guardado. Las tarifas se convierten a centavos enteros. Se conservan la moneda configurada, las etiquetas y detalles de los métodos de pago, y los UUID de los videos cuya URL permanece.
@@ -31,7 +44,7 @@ Actualizar una sección vuelve a cargar sus campos desde Supabase; guarda primer
 
 ## Alcance y pruebas
 
-La página pública ya consulta estos textos y videos, y el resumen del checkout usa las tarifas y métodos habilitados: consulta [la integración pública](storefront-integration.md). La edición del perfil, el registro de pedidos y los módulos financieros requieren integración aparte.
+La página pública consulta estos textos y videos, y el checkout usa las tarifas y métodos habilitados: consulta [la integración pública](storefront-integration.md), [pedidos](orders-integration.md) y [contabilidad](finance-integration.md). La edición del perfil sigue pendiente de integración.
 
 Pruebas locales:
 

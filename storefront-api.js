@@ -72,10 +72,13 @@ window.storefrontApi = (() => {
     },
     async readContent() {
       const [block, videos] = await Promise.all([
-        singleton('content_block','hero_copy,feed_copy,instagram_url,tiktok_url'),
+        singleton('content_block','hero_copy,feed_copy,instagram_url,tiktok_url,hero_image_key').catch(error=>{
+          if(!['42703','PGRST204'].includes(error.code))throw error;
+          return singleton('content_block','hero_copy,feed_copy,instagram_url,tiktok_url');
+        }),
         rows('content_video','id,url,sort_order',['sort_order','id'])
       ]);
-      return {heroCopy: block.hero_copy, feedCopy: block.feed_copy,
+      return {heroCopy: block.hero_copy, feedCopy: block.feed_copy, heroImage: imageUrl(block.hero_image_key) || 'assets/campaign-city.jpg',
         instagramUrl: socialUrl(block.instagram_url,'instagram.com'), tiktokUrl: socialUrl(block.tiktok_url,'tiktok.com'), videos};
     },
     async readCheckout() {

@@ -1,5 +1,7 @@
 # Contrato frontend de control de dinero
 
+> Documento histórico del prototipo. El panel ya utiliza [la integración financiera con Supabase](finance-integration.md). Los motores en memoria se conservan para pruebas de dominio; ya no crean los datos del panel.
+
 La demostración se crea en `cash.js` con `Cash.createRepository({products})`. Datos, archivos y modificaciones viven únicamente en memoria. `adminCatalog.products()` y `launches()` exponen copias del catálogo para seleccionar productos y lanzamientos; las ventas conservan nombre y precio como snapshot. No se crean pedidos reales ni se modifica inventario.
 
 ## Repositorio asíncrono

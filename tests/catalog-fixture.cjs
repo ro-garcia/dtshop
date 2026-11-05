@@ -6,6 +6,7 @@ module.exports = require('./auth-fixture.cjs') + String.raw`
   launch:[{id:'remote-drop',name:'Drop remoto',launch_on:'2026-12-01',arrival_label:'Diciembre',image_key:'ops/drop.webp',status:'upcoming',updated_at:'2026-11-04T10:00:00Z',launch_product:[{product_id:'remote-shirt',sort_order:0}]}]
  };
  window.catalogWrites=[];
+ window.testUploads=[];
  window.storeRows=JSON.parse(sessionStorage.getItem('test-store-rows')||'null')||{
   content_block:[{id:1,hero_copy:'Texto desde Supabase',feed_copy:'Feed remoto',instagram_url:'https://www.instagram.com/dirtytask/',tiktok_url:'https://www.tiktok.com/@dirtytask',updated_at:'2026-11-04T10:00:00Z'}],
   content_video:[{id:'video-1',url:'https://www.tiktok.com/@dirtytask/video/7326274171879591173',sort_order:0}],
@@ -15,7 +16,7 @@ module.exports = require('./auth-fixture.cjs') + String.raw`
  };
  window.supabase.createClient=(...args)=>{
   const client=original(...args), schema=client.schema.bind(client);
-  client.storage={from(){return {getPublicUrl:key=>({data:{publicUrl:'https://example.supabase.co/storage/v1/object/public/dtshop-products/'+key}}),async upload(){return {error:null}}}}};
+  client.storage={from(){return {getPublicUrl:key=>({data:{publicUrl:'https://example.supabase.co/storage/v1/object/public/dtshop-products/'+key}}),async upload(key,file){window.testUploads.push({key,size:file.size,type:file.type});return {error:null}}}}};
   client.schema=(name)=>({
    from(table){
     if(table==='app_user')return schema(name).from(table);

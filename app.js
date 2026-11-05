@@ -1,6 +1,5 @@
 (async () => {
   const safeText = (value) => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
-  document.getElementById('retryStorefront').addEventListener('click', () => window.location.reload());
   const results = await Promise.allSettled([
     Promise.resolve().then(() => window.storefrontApi.readCatalog()),
     Promise.resolve().then(() => window.storefrontApi.readContent())
@@ -44,7 +43,6 @@
   let toastTimeout;
   let cart = [];
   try {
-    localStorage.removeItem("dirtytask-demo-cart");
     const savedCart = JSON.parse(localStorage.getItem("dirtytask-cart") || "[]");
     if (Array.isArray(savedCart)) {
       const used = new Map();
@@ -148,11 +146,15 @@
   }
 
   function applyFilters() {
+    document.querySelectorAll('[data-category-link]').forEach(link=>{
+      const selected=link.dataset.categoryLink===activeFilter;
+      link.classList.toggle('is-selected',selected);
+      if(selected)link.setAttribute('aria-current','true');else link.removeAttribute('aria-current');
+    });
     if (!catalogData) {
       resultCount.textContent = 'Catálogo no disponible.';
       document.getElementById('emptyTitle').textContent = 'No pudimos cargar la colección.';
-      document.getElementById('emptyCopy').textContent = 'Comprueba tu conexión y pulsa Reintentar.';
-      document.getElementById('retryStorefront').hidden = false;
+      document.getElementById('emptyCopy').textContent = 'Comprueba tu conexión y recarga la página.';
       grid.hidden = true; emptyState.hidden = false;
       return;
     }
@@ -242,6 +244,12 @@
       filter.setAttribute("aria-pressed", String(selected));
     });
     applyFilters();
+  }));
+  document.querySelectorAll('[data-category-link]').forEach(link=>link.addEventListener('click',()=>{
+    const filter=filters.find(button=>button.dataset.filter===link.dataset.categoryLink);
+    if(!filter)return;
+    searchInput.value='';filter.click();
+    document.getElementById('collectionTitle').focus({preventScroll:true});
   }));
   primaryNav.querySelectorAll("[data-nav-filter]").forEach((link) => link.addEventListener("click", () => {
     const filter = filters.find((button) => button.dataset.filter === link.dataset.navFilter);
@@ -393,6 +401,15 @@
   function mountStorefront() {
     const photo = product => '<img src="' + safeText(product.image || 'assets/dirtytask-logo.png') + '" alt="' + safeText(product.name) + '" loading="lazy">';
     const published = (catalogData?.products || []).filter(product => product.published);
+    const categories=catalogData?.categories||[];
+    document.getElementById('categorias').hidden=!categories.length;
+    document.getElementById('categoryGrid').innerHTML=categories.map(category=>{
+      const items=published.filter(product=>product.categoryCode===category.code);
+      const image=items.find(product=>product.image&&!product.image.endsWith('dirtytask-logo.png'))?.image;
+      return '<a class="category-card'+(image?'':' category-card-text')+'" href="#coleccion" data-category-link="'+safeText(category.code)+'">'+
+        (image?'<div class="category-photo"><img src="'+safeText(image)+'" alt="" loading="lazy"></div>':'<div class="category-photo category-photo-empty" aria-hidden="true"><span>'+safeText(category.label.slice(0,1))+'</span></div>')+
+        '<div class="category-meta"><p class="category-count">'+(items.length?items.length+' '+(items.length===1?'pieza':'piezas'):'Sin piezas por ahora')+'</p><h3>'+safeText(category.label)+'</h3><span class="category-action">Ver categoría <span class="category-arrow" aria-hidden="true">↗</span></span></div></a>';
+    }).join('');
     document.getElementById('catalogCurrency').textContent = 'PRECIOS / ' + currency;
     if (catalogData) {
       document.querySelector('.filter-list').innerHTML = '<button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">Todo <span>00</span></button>' +
@@ -421,12 +438,16 @@
         return '<div class="drop-product"><h3>'+safeText(product.name)+'</h3><strong>'+safeText(money(product.price))+'</strong><button type="button" data-open-product="'+safeText(id)+'">Ver pieza <span>+</span></button></div>';
       }).join('')+'</div></div></div></details>').join('') || '<p class="drop-empty">'+(catalogData?'No hay drops publicados.':'No se pudieron consultar los lanzamientos.')+'</p>';
     const contentStatus = document.getElementById('publicContentStatus');
+    document.querySelector('.hero-copy').setAttribute('aria-busy', 'false');
+    document.querySelector('.instagram-caption').setAttribute('aria-busy', 'false');
     if (!contentData) {
-      contentStatus.textContent = 'No se pudo cargar el contenido. Reintenta para actualizarlo.';
-      document.getElementById('retryStorefront').hidden = false;
+      contentStatus.textContent = 'No se pudo cargar el contenido. Recarga la página para actualizarlo.';
       return;
     }
     document.querySelector('.hero-copy').textContent = contentData.heroCopy;
+    const heroImage=document.querySelector('.hero-image');
+    heroImage.src=contentData.heroImage || 'assets/campaign-city.jpg';
+    heroImage.alt='Portada de Dirtytask Clothing Store';
     document.querySelector('.instagram-caption').textContent = contentData.feedCopy;
     document.querySelectorAll('a[href]').forEach(anchor => {
       try {

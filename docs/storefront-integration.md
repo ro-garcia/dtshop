@@ -27,6 +27,8 @@ La carga se realiza al abrir o recargar la página. No hay sincronización en ti
 
 La cuadrícula y la sección de recién ingresados usan productos publicados. Las preventas sin publicación general solo son accesibles cuando están vinculadas a un lanzamiento abierto o próximo. Borradores y archivados se excluyen también en la transformación del cliente, además de RLS.
 
+La sección **Compra por categoría** usa las categorías de Supabase, el número de productos publicados y una imagen de esos productos. Al seleccionar una categoría se limpia la búsqueda, se activa su filtro y se abre la colección. Las categorías sin productos muestran su estado vacío y no utilizan fotografías ajenas a esa categoría. **Ver toda la colección** vuelve al filtro general.
+
 Las imágenes se resuelven desde `dtshop-products`. Si falta una imagen, se muestra el logo de la tienda. Los videos de TikTok se cargan al entrar en pantalla; los videos de Instagram se abren mediante un enlace. Nombres, etiquetas y tallas se insertan como texto o HTML escapado.
 
 ## Bolsa y resumen
@@ -35,7 +37,7 @@ La bolsa se guarda en localStorage con producto, talla y cantidad. Se valida des
 
 Al continuar se conserva la referencia de variante y se vuelve a consultar Supabase. El resumen ignora nombres, precios e imágenes guardados por el navegador. Calcula con centavos enteros y los valores actuales del catálogo. Si falta una pieza o talla, hay líneas duplicadas o el stock es insuficiente, bloquea la continuación y solicita revisar la bolsa. No descarta líneas silenciosamente para generar un pedido parcial.
 
-El botón **Consultar disponibilidad** muestra el contacto de la tienda. No envía datos personales, no reserva inventario, no cobra y no registra un pedido. Para registrar pedidos reales debe integrarse un flujo autenticado o un endpoint de servidor; `place_order` no se expone a visitantes anónimos.
+El botón **Enviar pedido** registra el pedido pendiente mediante una sesión de invitado, con validación del servidor y protección contra reintentos duplicados. Consulta [la guía de activación de pedidos](orders-integration.md). El checkout informa que se enviarán los datos de contacto y entrega; no solicita datos de tarjeta ni procesa cobros. Las lecturas públicas siguen usando su cliente separado.
 
 ## Pruebas
 

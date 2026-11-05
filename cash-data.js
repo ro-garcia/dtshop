@@ -159,22 +159,6 @@
       }
       return result;
     }
-    if (options.seed !== false) {
-      const previous = A.shiftMonth(today.slice(0, 7), -1), start = previous + '-01';
-      const b = createAccount({ name: 'Banrural · operación', bank: 'Banrural (ejemplo)', type: 'bank', currency: 'GTQ', openingBalance: '5000', startDate: start });
-      const g = createAccount({ name: 'BI · reservas', bank: 'Banco Industrial (ejemplo)', type: 'bank', currency: 'GTQ', openingBalance: '2000', startDate: start });
-      const c = createAccount({ name: 'Caja de tienda', type: 'cash', currency: 'GTQ', openingBalance: '500', startDate: start });
-      const product = options.products?.[0];
-      const line = price => [{ productId: product?.id || null, name: product?.name || 'Prenda de ejemplo', qty: '1', price }];
-      const sales = ['web', 'external', 'web', 'physical'].map((channel, i) => createSale({ reference: `DEMO-V0${i + 1}`, date: today, channel, currency: 'GTQ', customer: `Cliente de ejemplo ${i + 1}`, shippingMode: i === 3 ? 'included' : 'extra', shipping: '35', lines: line(i === 3 ? '200' : '100') }));
-      const forza = createSettlement({ courier: 'Forza', date: today, allocations: [{ saleId: sales[0].id, amount: '135' }] });
-      confirmSettlement({ id: forza.id, accountId: b.id, date: today, service: '7', received: '128' });
-      createSettlement({ courier: 'Fast Delivery', date: today, allocations: [{ saleId: sales[1].id, amount: '135' }, { saleId: sales[2].id, amount: '135' }] });
-      collect({ saleId: sales[3].id, accountId: g.id, date: today, amount: '100' });
-      collect({ saleId: sales[3].id, accountId: c.id, date: today, amount: '100' });
-      addEntry({ accountId: b.id, date: today, direction: 'out', category: 'advertising', amount: '50', concept: 'Publicidad de ejemplo' });
-      transfer({ fromId: b.id, toId: c.id, date: today, amount: '80', concept: 'Fondo de caja' });
-    }
     const wrap = fn => async (...args) => { const before = clone(data), seq = sequence, oldFileIds = new Set(files.keys()); try { return fn(...args); } catch (e) { data = before; sequence = seq; for (const id of files.keys()) if (!oldFileIds.has(id)) files.delete(id); throw e; } };
     return { list: async () => clone(data), createAccount: wrap(createAccount), createSale: wrap(createSale), adjustSale: wrap(adjustSale), collect: wrap(collect), createSettlement: wrap(createSettlement), confirmSettlement: wrap(confirmSettlement), addEntry: wrap(addEntry), transfer: wrap(transfer), saleStatus: async (...args) => saleStatus(...args), accountLedger: async (...args) => ledger(...args), report: async (...args) => report(...args), getAttachment: async id => { if (!files.has(id)) throw new Error('Comprobante no disponible.'); return files.get(id); } };
   }

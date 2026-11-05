@@ -112,34 +112,13 @@
       if (file) attachments.set(movement.attachment.id, file);
       movements.push(movement); return copy(movement);
     }
-    if (options.seed !== false) {
-      const previous = shiftMonth(asOf.slice(0, 7), -1);
-      const startDate = previous + '-01';
-      const a = createObligation({ bank: 'Banco Horizonte · ejemplo', reference: 'DEMO-P01', name: 'Capital de trabajo', type: 'loan', currency: 'GTQ', openingBalance: '25000', installment: '1500', dueDay: 15, startDate });
-      const b = createObligation({ bank: 'Banco Horizonte · ejemplo', reference: 'DEMO-F01', name: 'Equipo de tienda', type: 'financing', currency: 'GTQ', openingBalance: '8000', installment: '800', dueDay: 25, startDate });
-      const c = createObligation({ bank: 'Banco Aurora · ejemplo', reference: 'DEMO-T01', name: 'Tarjeta de compras', type: 'card', currency: 'GTQ', openingBalance: '3000', installment: '300', dueDay: 10, startDate });
-      addMovement({ obligationId: a.id, type: 'payment', date: previous + '-15', period: previous, total: '1500', principal: '1200', interest: '250', fees: '50' });
-      addMovement({ obligationId: b.id, type: 'principal', date: previous + '-20', total: '1000' });
-      addMovement({ obligationId: c.id, type: 'purchase', date: previous + '-22', total: '450', notes: 'Compra de insumos de ejemplo' });
-    }
     const cash = options.cashRepository;
-    const ready = (async () => {
-      if (!cash || options.seed === false) return;
-      const accounts = (await cash.list()).accounts;
-      for (const m of movements.filter(m => ['payment', 'principal'].includes(m.type))) {
-        const o = obligations.find(o => o.id === m.obligationId), a = accounts.find(a => a.currency === o.currency && a.type === 'bank');
-        if (!a) continue;
-        await cash.addEntry({ accountId: a.id, currency: o.currency, date: m.date, direction: 'out', category: 'debt', amount: (m.total / 100).toFixed(2), concept: `${MOVEMENTS[m.type]} · ${o.name}`, sourceType: 'obligation', sourceId: m.id });
-        m.sourceAccountId = a.id;
-      }
-    })();
     let queue = Promise.resolve();
     return {
-      async list() { await ready; return copy({ schemaVersion: 1, obligations, movements }); },
+      async list() { return copy({ schemaVersion: 1, obligations, movements }); },
       async createObligation(input) { return createObligation(input); },
       async addMovement(input, file) {
         const run = queue.then(async () => {
-          await ready;
           const before = movements.slice(), oldFiles = new Map(attachments);
           try {
             const movement = addMovement(input, file);

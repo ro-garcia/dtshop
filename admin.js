@@ -3,6 +3,9 @@
   let catalogRequest = 0;
   let catalogReady = false;
   let catalogBusy = false;
+  let bannerDraft=null;
+  let bannerRevision=0;
+  let bannerPending=false;
   const storePanels = {
     content: { ready: false, busy: false, revision: 0 },
     settings: { ready: false, busy: false, revision: 0 }
@@ -13,32 +16,15 @@
   };
   const emptyContent = () => ({heroCopy: '', feedCopy: '', instagramUrl: '', tiktokUrl: '', videos: []});
   const emptySettings = () => ({shippingGuatemala: 0, shippingOther: 0, payments: {cash: false, visaInstallments: false, visalink: false}});
-  // Authentication is managed by admin-auth.js; local demo tokens grant no access.
+  // Authentication is managed by admin-auth.js; access is verified against Supabase.
   let categoryLabels = Object.create(null);
   let categoriesReady = false;
   let categoriesMessage = 'Las categorías se cargarán al iniciar sesión.';
   let categoriesRequest = 0;
 
-  const demoProductIds = new Set(["tee-noche", "tee-grateful", "tee-solar", "clogs-pokemon", "sneakers-adidas", "tumbler-ripndip", "preorder-pikachu", "preorder-jigglypuff", "preorder-gengar", "denim-wide-leg", "overshirt-canvas", "bomber-afterhours", "hoodie-cloud", "hoodie-signal", "tee-afterhours", "tee-static", "crewneck-crossfade"]);
-  const seed = {
-    products: [],
-    launches: [],
-    content: {
-      heroCopy: "Streetwear, cultura sneaker y piezas con actitud. Encuentra tu próximo outfit y descubre la selección de Dirtytask Store. También te traemos la prenda que tú quieras.",
-      feedCopy: "Las mejores marcas de todo el mundo en Guatemala.",
-      instagramUrl: "https://www.instagram.com/dirtytask/?hl=es",
-      tiktokUrl: "https://www.tiktok.com/@dirtytask",
-      videos: ["https://www.tiktok.com/@dirtytask/video/7326274171879591173", "https://www.tiktok.com/@dirtytask/video/7322528374738488581", "https://www.tiktok.com/@dirtytask/video/7265850704454077702", "https://www.tiktok.com/@dirtytask/video/7689297049241603335", "https://www.tiktok.com/@dirtytask/video/7663144684067343624", "https://www.tiktok.com/@dirtytask/video/7662516090895043848"]
-    },
-    settings: { shippingGuatemala: 25, shippingOther: 35, payments: { cash: true, visaInstallments: true, visalink: true } },
-    profile: { displayName: "Administrador", avatar: "" },
-    orders: []
-  };
-
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-  const clone = (value) => JSON.parse(JSON.stringify(value));
   const formatMoney = (value) => "Q " + new Intl.NumberFormat("es-GT", { maximumFractionDigits: 2 }).format(Number(value) || 0);
   const slug = (value) => String(value || "producto").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "producto";
   const nextDropId = () => {
@@ -74,63 +60,14 @@
     } catch (_) { return null; }
     return null;
   };
-  const normalizeState = (raw) => {
-    const value = raw && typeof raw === "object" ? raw : {};
-    const products = [];
-    if (Array.isArray(value.products)) {
-      value.products.forEach((saved) => {
-        if (!saved || typeof saved.id !== "string" || !/^[a-z0-9-]{2,50}$/.test(saved.id) || demoProductIds.has(saved.id)) return;
-        const existing = products.find((product) => product.id === saved.id);
-        const clean = {
-          ...saved,
-          name: String(saved.name || "Producto nuevo").slice(0, 80),
-          category: typeof saved.category === "string" ? saved.category : "",
-          price: Number.isFinite(Number(saved.price)) && Number(saved.price) >= 0 ? Number(saved.price) : 0,
-          image: validProductImage(saved.image) ? saved.image : "",
-          lookImage: validProductImage(saved.lookImage) ? saved.lookImage : "",
-          variants: Array.isArray(saved.variants) ? saved.variants.map((item) => String(item).slice(0, 12)).filter(Boolean).slice(0, 20) : ["Única"],
-          stock: Math.max(0, Number.parseInt(saved.stock, 10) || 0),
-          status: ["active", "draft", "archived"].includes(saved.status) ? saved.status : "draft",
-          published: Boolean(saved.published),
-          preorder: Boolean(saved.preorder),
-          description: String(saved.description || "").slice(0, 240)
-        };
-        if (existing) Object.assign(existing, clean); else products.push(clean);
-      });
-    }
-    const launches = Array.isArray(value.launches) ? value.launches.map((launch, index) => ({
-      id: /^[a-z0-9-]{2,50}$/.test(launch?.id || "") ? launch.id : "drop-" + String(index + 1).padStart(2, "0"),
-      name: String(launch?.name || "Nuevo lanzamiento").slice(0, 90),
-      launchDate: String(launch?.launchDate || "").slice(0, 40),
-      arrivalDate: String(launch?.arrivalDate || "").slice(0, 60),
-      image: validProductImage(launch?.image) ? launch.image : "",
-      status: ["open", "upcoming", "closed"].includes(launch?.status) ? launch.status : "upcoming",
-      productIds: Array.isArray(launch?.productIds) ? launch.productIds.filter((id) => products.some((product) => product.id === id)).slice(0, 12) : []
-    })).filter((launch) => !(launch.id === "drop-02" && /crocs/i.test(launch.name))) : [];
-    const content = { ...seed.content, ...(value.content || {}) };
-    content.heroCopy = String(content.heroCopy || "").slice(0, 240);
-    content.feedCopy = String(content.feedCopy || "").slice(0, 140);
-    content.instagramUrl = validSocialUrl(content.instagramUrl, "instagram.com") || seed.content.instagramUrl;
-    content.tiktokUrl = validSocialUrl(content.tiktokUrl, "tiktok.com") || seed.content.tiktokUrl;
-    content.videos = Array.isArray(content.videos) ? content.videos.map(normalizeVideoUrl).filter(Boolean).slice(0, 12) : clone(seed.content.videos);
-    const settings = { ...seed.settings, ...(value.settings || {}) };
-    settings.shippingGuatemala = Math.max(0, Number(settings.shippingGuatemala) || 0);
-    settings.shippingOther = Math.max(0, Number(settings.shippingOther) || 0);
-    settings.payments = { ...seed.settings.payments, ...(settings.payments || {}) };
-    const profile = { ...seed.profile, ...(value.profile || {}) };
-    profile.displayName = String(profile.displayName || "").replace(/\s+/g, " ").trim().slice(0, 60) || seed.profile.displayName;
-    profile.avatar = isDeviceImage(profile.avatar) ? profile.avatar : "";
-    return { products, launches, content, settings, profile, orders: Array.isArray(value.orders) ? value.orders : [] };
+  const normalizeState = raw => {
+    const saved=raw&&typeof raw==='object'?raw.profile:null;
+    const profile={displayName:String(saved?.displayName||'Administrador').replace(/\s+/g,' ').trim().slice(0,60)||'Administrador',avatar:isDeviceImage(saved?.avatar)?saved.avatar:''};
+    return {products:[],launches:[],content:emptyContent(),settings:emptySettings(),profile};
   };
-
   let state;
-  try { state = normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")); }
-  catch (_) { state = normalizeState(null); }
-  // Supabase owns the catalog. Never display a previous browser's local catalog.
-  state.products = [];
-  state.launches = [];
-  state.content = emptyContent();
-  state.settings = emptySettings();
+  try { state=normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)||'null')); }
+  catch { state=normalizeState(null); }
   window.adminCatalog = { products: () => structuredClone(state.products), launches: () => structuredClone(state.launches) };
   const loginScreen = $("#loginScreen");
   const adminApp = $("#adminApp");
@@ -179,8 +116,10 @@
       $$(storeControls[area]).forEach(control => { control.disabled = window.adminIdentity?.role !== 'partner_ops' || !panel.ready || panel.busy; });
       $(area === 'content' ? '#refreshContent' : '#refreshSettings').disabled = !window.adminIdentity || panel.busy;
     }
+    if(state.content.bannerSupported===false){$('#heroBannerInput').disabled=true;$('#resetHeroBanner').disabled=true;}
+    if(bannerPending)$('#saveContentButton').disabled=true;
   }
-  // Identity fields remain local-demo settings until profile editing is integrated.
+  // Identity fields remain local preferences until profile editing is integrated.
   document.addEventListener('click', event => {
     if (window.adminIdentity?.role === 'partner_finance' && event.target.closest(opsControls)) {
       event.preventDefault(); event.stopImmediatePropagation();
@@ -253,6 +192,7 @@ async function loadRemoteCatalog() {
   catalogReady = false;
   $('#refreshCatalog').disabled = true;
   $('#catalogLoadStatus').textContent = 'Cargando catálogo de Supabase…';
+  $('#catalogLoadStatus').dataset.state='quiet';
   applyRoleControls();
   try {
     const [products, launches] = await Promise.all([window.catalogApi.listProducts(), window.catalogApi.listLaunches()]);
@@ -268,12 +208,15 @@ async function loadRemoteCatalog() {
   } catch (error) {
     if (ticket !== catalogRequest || window.adminIdentity?.id !== userId) return false;
     $('#catalogLoadStatus').textContent = 'No se pudo actualizar el catálogo. Los datos visibles pueden ser anteriores. Reintenta.';
+    $('#catalogLoadStatus').dataset.state='error';
     return false;
   } finally {
     if (ticket === catalogRequest) { $('#refreshCatalog').disabled = false; applyRoleControls(); }
   }
 }
   $('#refreshCatalog').addEventListener('click', () => { if (!catalogBusy) loadRemoteCatalog(); });
+  document.addEventListener('dirtytask:orders-updated', renderOverview);
+  document.addEventListener('dirtytask:order-stock-updated', () => { if (!catalogBusy) loadRemoteCatalog(); });
 
 
   async function loadCategories() {
@@ -362,7 +305,7 @@ async function loadRemoteCatalog() {
     const openDrops = state.launches.filter((launch) => launch.status === "open");
     $("#metricProducts").textContent = String(storefrontProducts.length);
     $("#metricDrops").textContent = String(openDrops.length);
-    $("#metricOrders").textContent = "0";
+    $("#metricOrders").textContent = String(window.adminOrders?.totalCount() || 0);
     $("#metricInventory").textContent = String(activeProducts.reduce((sum, product) => sum + Number(product.stock || 0), 0));
     $("#recentProducts").innerHTML = storefrontProducts.slice(0, 4).map((product) => '<div class="mini-product">' + (product.image ? '<img src="' + escapeHtml(product.image) + '" alt="">' : '') + '<span><strong>' + escapeHtml(product.name) + '</strong><small>' + escapeHtml(categoryLabels[product.category]) + '</small></span><b>' + formatMoney(product.price) + '</b></div>').join("") || '<p class="field-hint">Sin productos publicados.</p>';
     $("#recentDrops").innerHTML = state.launches.slice(0, 4).map((launch) => '<div class="drop-overview-item"><span><strong>' + escapeHtml(launch.name) + '</strong><small>' + escapeHtml(launch.launchDate || "Fecha por definir") + '</small></span>' + (launch.status === "open" ? '<span class="status-pill status-active">Abierto</span>' : '<span class="status-pill status-draft">Programado</span>') + '</div>').join("") || '<p class="field-hint">Sin lanzamientos programados.</p>';
@@ -412,6 +355,13 @@ async function loadRemoteCatalog() {
     applyRoleControls();
   }
   function renderContent() {
+    bannerRevision++;
+    bannerPending=false;
+    if(bannerDraft?.preview)URL.revokeObjectURL(bannerDraft.preview);
+    bannerDraft=null;
+    $('#heroBannerInput').value='';
+    $('#heroBannerPreview').src=window.catalogApi.publicImageUrl(state.content.heroImageKey) || 'assets/campaign-city.jpg';
+    $('#heroBannerStatus').textContent=state.content.bannerSupported===false?'Para cambiar el banner, instala sql/banner-integration.sql.':'JPG, PNG o WEBP · Hasta 15 MB. Recomendado: 1600 px de ancho o más.';
     const form = $("#contentForm");
     form.elements.heroCopy.value = state.content.heroCopy;
     form.elements.feedCopy.value = state.content.feedCopy;
@@ -644,7 +594,7 @@ async function loadRemoteCatalog() {
     $("#deleteEntryButton").hidden = !item;
     $("#deleteEntryButton").textContent = type === "product" ? "Archivar producto" : "Cerrar lanzamiento";
     if (type === "product") {
-      const product = item || { id: "", name: "", category: "tshirts", price: 0, image: "", lookImage: "", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "", stock: 0, status: "draft", published: false, preorder: false };
+      const product = item || { id: "", name: "", category: Object.keys(categoryLabels)[0] || "", price: 0, image: "", lookImage: "", variantName: "talla", variants: [], description: "", stock: 0, status: "draft", published: false, preorder: false };
       $("#editorFields").innerHTML = field("Identificador", "id", product.id || slug(product.name), { required: true, readonly: Boolean(item) }) +
         field("Nombre del producto", "name", product.name, { required: true }) +
         field("Categoría", "category", product.category, { select: [[product.category, categoryLabels[product.category] || product.category]] }) +
@@ -759,6 +709,7 @@ async function loadRemoteCatalog() {
   function contentFromDatabase(data) {
     if (!data?.block?.updated_at || !Array.isArray(data.videos)) throw new Error('Contenido incompleto en Supabase.');
     return {heroCopy: data.block.hero_copy, feedCopy: data.block.feed_copy,
+      heroImageKey: data.block.hero_image_key, bannerSupported:data.bannerSupported!==false,
       instagramUrl: data.block.instagram_url, tiktokUrl: data.block.tiktok_url,
       videos: data.videos.map(video => video.url), updatedAt: data.block.updated_at};
   }
@@ -783,6 +734,10 @@ async function loadRemoteCatalog() {
     if (!saving) panel.ready = false;
     const status = $(area === 'content' ? '#contentLoadStatus' : '#settingsLoadStatus');
     status.textContent = saving ? 'Guardando en Supabase…' : 'Cargando desde Supabase…';
+    status.dataset.state='quiet';
+    const saveButton=$(area==='content'?'#saveContentButton':'#saveSettingsButton');
+    const saveLabel=area==='content'?'Guardar contenido':'Guardar cambios';
+    if(saving)saveButton.textContent='Guardando…';
     applyRoleControls();
     try {
       const data = await action();
@@ -791,12 +746,14 @@ async function loadRemoteCatalog() {
       panel.ready = true;
       if (area === 'content') renderContent(); else renderSettings();
       status.textContent = saving ? 'Cambios guardados en Supabase.' : 'Datos cargados desde Supabase.';
+      if(saving){saveButton.textContent='Guardado';setTimeout(()=>{if(!panel.busy&&saveButton.textContent==='Guardado')saveButton.textContent=saveLabel},2000);}
     } catch (error) {
       if (ticket !== panel.revision || window.adminIdentity?.id !== userId) return;
       status.textContent = saving ? 'No se pudo guardar. ' + (error.message || 'Reintenta.')
         : 'No se pudo actualizar. Lo visible puede ser anterior. ' + (error.message || 'Reintenta.');
+      status.dataset.state='error';
     } finally {
-      if (ticket === panel.revision && window.adminIdentity?.id === userId) { panel.busy = false; applyRoleControls(); }
+      if (ticket === panel.revision && window.adminIdentity?.id === userId) { panel.busy = false; if(saveButton.textContent==='Guardando…')saveButton.textContent=saveLabel; applyRoleControls(); }
     }
   }
   function loadStorePanel(area) {
@@ -810,27 +767,60 @@ async function loadRemoteCatalog() {
   $("#contentForm").addEventListener("submit", (event) => { event.preventDefault(); saveContent(); });
   $("#saveContentButton").addEventListener("click", saveContent);
   function saveContent() {
-    if (!canEditStore('content')) return;
+    if (!canEditStore('content')||bannerPending) return;
     const form = $("#contentForm");
     const videos = videoDraft().map(normalizeVideoUrl);
     if (videos.some(url => !url) || new Set(videos).size !== videos.length || videos.length > 12) {
       $('#contentLoadStatus').textContent = 'Usa hasta 12 enlaces válidos y distintos de TikTok o Instagram.';
+      $('#contentLoadStatus').dataset.state='error';
       return;
     }
     const instagramUrl = validSocialUrl(form.elements.instagramUrl.value, "instagram.com");
     const tiktokUrl = validSocialUrl(form.elements.tiktokUrl.value, "tiktok.com");
-    if (!instagramUrl || !tiktokUrl) { $('#contentLoadStatus').textContent = 'Verifica los enlaces de Instagram y TikTok de Dirtytask.'; return; }
+    if (!instagramUrl || !tiktokUrl) { $('#contentLoadStatus').textContent = 'Verifica los enlaces de Instagram y TikTok de Dirtytask.'; $('#contentLoadStatus').dataset.state='error'; return; }
     const content = {
       heroCopy: form.elements.heroCopy.value.trim().slice(0, 240), feedCopy: form.elements.feedCopy.value.trim().slice(0, 140),
       instagramUrl, tiktokUrl,
       videos, updatedAt: state.content.updatedAt
     };
-    return storeOperation('content', () => window.storeApi.saveContent(content), true);
+    const draft=bannerDraft;
+    const userId=window.adminIdentity.id,revision=storePanels.content.revision+1;
+    return storeOperation('content', async () => {
+      if(draft?.file&&!draft.key)draft.key=await window.storeApi.uploadBanner(draft.file,userId);
+      if(window.adminIdentity?.id!==userId||storePanels.content.revision!==revision)throw new Error('La sesión cambió.');
+      content.heroImageKey=draft?draft.key:state.content.heroImageKey;
+      return window.storeApi.saveContent(content);
+    }, true);
   }
+  $('#heroBannerInput').addEventListener('change',async event=>{
+    const input=event.currentTarget,file=input.files?.[0];
+    if(!file||!canEditStore('content')||state.content.bannerSupported===false)return;
+    const ticket=++bannerRevision,userId=window.adminIdentity.id;
+    bannerPending=true;applyRoleControls();
+    try{
+      if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>15*1024*1024)throw Error('Elige una imagen JPG, PNG o WEBP de hasta 15 MB.');
+      const bitmap=await createImageBitmap(file);bitmap.close();
+      if(ticket!==bannerRevision||window.adminIdentity?.id!==userId)return;
+      if(bannerDraft?.preview)URL.revokeObjectURL(bannerDraft.preview);
+      bannerDraft={file,key:null,preview:URL.createObjectURL(file)};
+      $('#heroBannerPreview').src=bannerDraft.preview;
+      $('#heroBannerStatus').textContent='Imagen seleccionada. Guarda el contenido para publicarla.';
+    }catch(error){if(ticket===bannerRevision)$('#heroBannerStatus').textContent=error.message||'No se pudo abrir la imagen.';}
+    finally{input.value='';if(ticket===bannerRevision){bannerPending=false;applyRoleControls();}}
+  });
+  $('#resetHeroBanner').addEventListener('click',()=>{
+    if(!canEditStore('content')||state.content.bannerSupported===false)return;
+    bannerRevision++;
+    bannerPending=false;
+    if(bannerDraft?.preview)URL.revokeObjectURL(bannerDraft.preview);
+    bannerDraft={file:null,key:null};$('#heroBannerPreview').src='assets/campaign-city.jpg';
+    $('#heroBannerStatus').textContent='Imagen original seleccionada. Guarda el contenido para publicarla.';
+    applyRoleControls();
+  });
   $("#addVideoButton").addEventListener("click", () => {
     if (!canEditStore('content')) return;
     const videos = videoDraft();
-    if (videos.length >= 12) { $('#contentLoadStatus').textContent = 'Puedes agregar hasta 12 videos.'; return; }
+    if (videos.length >= 12) { $('#contentLoadStatus').textContent = 'Puedes agregar hasta 12 videos.'; $('#contentLoadStatus').dataset.state='error'; return; }
     state.content.videos = [...videos, '']; renderVideos();
   });
   $("#videoList").addEventListener("click", (event) => {
@@ -902,6 +892,7 @@ async function loadRemoteCatalog() {
     };
     if (!Object.values(settings.payments).some(Boolean)) {
       $('#settingsLoadStatus').textContent = 'Deja al menos un método de pago disponible.';
+      $('#settingsLoadStatus').dataset.state='error';
       return;
     }
     return storeOperation('settings', () => window.storeApi.saveSettings(settings), true);

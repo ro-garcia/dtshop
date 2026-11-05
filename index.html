@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#141514">
-    <meta name="description" content="DIRTYTASK — streetwear, cultura sneaker y piezas con actitud. Encuentra tu próximo outfit, descubre Dirtytask Store y pide la prenda que quieras.">
+    <meta name="description" content="DIRTYTASK — Clothing Store Guatemala. Explora la colección y compra en línea.">
     <title>DIRTYTASK — Clothing Store Guatemala</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,14 +32,9 @@
       <nav class="primary-nav" id="primaryNav" aria-label="Navegación principal">
         <div class="nav-catalog">
           <a href="#coleccion">Catálogo <span>01</span></a>
-          <div class="nav-subcategories" aria-label="Subcategorías del catálogo">
-            <a href="#coleccion" data-nav-filter="sneakers">Sneakers</a>
-            <a href="#coleccion" data-nav-filter="hoodies">Hoodies</a>
-            <a href="#coleccion" data-nav-filter="tshirts">T-Shirts</a>
-            <a href="#coleccion" data-nav-filter="clogs">Clogs</a>
-            <a href="#coleccion" data-nav-filter="accessories">Accesorios</a>
-          </div>
+          <div class="nav-subcategories" aria-label="Subcategorías del catálogo"></div>
         </div>
+        <a href="#categorias">Categorías</a>
         <a href="#proximos">Próximos drops</a>
         <a href="#coleccion">La tienda</a>
         <a href="https://www.instagram.com/dirtytask/?hl=es" target="_blank" rel="noopener noreferrer">Instagram</a>
@@ -68,14 +63,14 @@
         <div class="hero-content">
           <p class="eyebrow"><span class="eyebrow-line"></span> DIRTYTASK CLOTHING STORE / GUATEMALA</p>
           <h1 id="heroTitle">LA CALLE<br>SE VISTE<br><em>DIRTY.</em></h1>
-          <p class="hero-copy">Streetwear, cultura sneaker y piezas con actitud. Encuentra tu próximo outfit y descubre la selección de Dirtytask Store. También te traemos la prenda que tú quieras.</p>
+          <p class="hero-copy" aria-busy="true"></p>
           <div class="hero-actions">
             <a class="button button-light" href="#coleccion">Shop the drop</a>
             <a class="text-link" href="#instagram">Conoce Dirtytask</a>
           </div>
           <div class="hero-foot">
             <span>STREETWEAR / SNEAKERS / GT</span>
-            <span>DROP 01</span>
+            <span>DIRTYTASK / GT</span>
           </div>
         </div>
         <div class="hero-stamp"><img src="assets/dirtytask-kart-mascot.png" alt="Mascota de Dirtytask conduciendo un kart"></div>
@@ -90,6 +85,7 @@
           <span>DIRTYTASK / GUATEMALA</span><b aria-hidden="true">✳</b>
         </div>
       </div>
+
 
       <section class="upcoming-drop" id="proximos" aria-labelledby="upcomingTitle">
         <div class="drop-kicker">
@@ -106,19 +102,14 @@
         <div class="section-heading reveal">
           <div>
             <p class="eyebrow eyebrow-dark"><span class="eyebrow-line"></span> DIRTYTASK / COLECCIÓN</p>
-            <h2 id="collectionTitle">Encuentra tu<br><em>próximo outfit.</em></h2>
+            <h2 id="collectionTitle" tabindex="-1">Encuentra tu<br><em>próximo outfit.</em></h2>
           </div>
-          <p class="section-intro">Explora las categorías de Dirtytask: sneakers, hoodies, T-Shirts, clogs y accesorios.</p>
+          <p class="section-intro">Elige una categoría y descubre las piezas disponibles.</p>
         </div>
 
         <div class="catalog-controls">
           <div class="filter-list" role="group" aria-label="Filtrar por subcategoría">
             <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">Todo <span>00</span></button>
-            <button class="filter-button" type="button" data-filter="sneakers" aria-pressed="false">Sneakers</button>
-            <button class="filter-button" type="button" data-filter="hoodies" aria-pressed="false">Hoodies</button>
-            <button class="filter-button" type="button" data-filter="tshirts" aria-pressed="false">T-Shirts</button>
-            <button class="filter-button" type="button" data-filter="clogs" aria-pressed="false">Clogs</button>
-            <button class="filter-button" type="button" data-filter="accessories" aria-pressed="false">Accesorios</button>
           </div>
           <div class="catalog-tools">
             <div class="catalog-search-group">
@@ -151,7 +142,7 @@
           </div>
         </div>
         <div class="catalog-status">
-          <p id="resultCount" aria-live="polite">Cargando catálogo…</p><button id="retryStorefront" class="text-link" type="button" hidden>Reintentar</button>
+          <p id="resultCount" aria-live="polite">Cargando catálogo…</p>
           <p id="catalogCurrency">PRECIOS / GTQ</p>
         </div>
 
@@ -181,7 +172,7 @@
           <div>
             <p class="eyebrow eyebrow-dark"><span class="eyebrow-line"></span> CONTENIDO</p>
             <h2 id="instagramTitle">Desde el<br><em>feed.</em></h2>
-            <p class="instagram-caption">Las mejores marcas de todo el mundo en Guatemala.</p>
+            <p class="instagram-caption" aria-busy="true"></p>
           </div>
           <div class="instagram-controls" role="group" aria-label="Controles del feed de video">
             <button class="instagram-arrow" id="instagramPrev" type="button" aria-label="Ver videos anteriores" disabled>ANT.</button>
@@ -197,6 +188,10 @@
           <span>Síguenos en nuestras redes <strong>@dirtytask</strong></span>
           <a href="https://www.tiktok.com/@dirtytask" target="_blank" rel="noopener noreferrer">Ver TikTok</a>
         </div>
+      </section>
+      <section class="category-section section-wrap" id="categorias" aria-labelledby="categoriesTitle" hidden>
+        <div class="category-heading"><div><p class="eyebrow eyebrow-dark">ENCUENTRA TU ESTILO</p><h2 id="categoriesTitle">Compra por categoría<span>.</span></h2><p class="category-intro">Tu próxima pieza empieza aquí. Elige lo que buscas y explora la colección.</p></div><a href="#coleccion" class="text-link" data-category-link="all">Ver toda la colección <span aria-hidden="true">↗</span></a></div>
+        <nav class="category-grid" id="categoryGrid" aria-label="Comprar por categoría"></nav>
       </section>
     </main>
 
@@ -271,7 +266,7 @@
         <button class="dialog-close" type="button" data-close-cart aria-label="Cerrar bolsa">×</button>
       </div>
       <div class="cart-lines" id="cartLines"></div>
-      <div class="cart-empty" id="cartEmpty"><p class="empty-glyph" aria-hidden="true">○</p><h3>La bolsa está ligera.</h3><p>Elige una pieza y la guardamos aquí.</p><button class="text-link" type="button" id="continueShopping">Volver a la colección</button></div>
+      <div class="cart-empty" id="cartEmpty"><p class="empty-glyph" aria-hidden="true">○</p><h3>La bolsa está vacía.</h3><p>Elige una pieza y la guardamos aquí.</p><button class="text-link" type="button" id="continueShopping">Volver a la colección</button></div>
       <div class="cart-footer" id="cartFooter">
         <div class="cart-subtotal"><span>Subtotal</span><strong id="cartSubtotal">Q 0</strong></div>
         <a class="cart-instagram-link" href="https://www.instagram.com/dirtytask/?hl=es" target="_blank" rel="noopener noreferrer">Consultar con @dirtytask</a>
