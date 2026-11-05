@@ -1,0 +1,45 @@
+.cash-nav { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 20px; margin-bottom: 15px; border-bottom: 1px solid var(--admin-line); }
+.cash-nav button { border: 1px solid var(--admin-line); padding: 11px 14px; background: white; color: var(--admin-ink); cursor: pointer; font-size: 11px; }
+.cash-nav button[aria-current] { color: white; background: var(--admin-ink); border-color: var(--admin-ink); }
+#cashRoot { min-width: 0; }
+.cash-range, .cash-toolbar { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; margin: 18px 0; }
+.cash-range label { display: grid; gap: 6px; font-size: 11px; }
+.cash-range input, .cash-export select { border: 1px solid var(--admin-line); min-height: 40px; padding: 8px; background: white; max-width: 100%; }
+.cash-currency { margin-block: 22px; }
+.cash-currency > .admin-kicker { margin-bottom: 10px; }
+.cash-report-grid, .cash-settlements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.cash-panel { margin-block: 18px; }
+.cash-panel h3, .cash-account-cards h3, .cash-export h3 { font: 700 26px/1.2 var(--admin-display); margin: 0 0 10px; overflow-wrap: anywhere; }
+.cash-panel p { line-height: 1.6; color: #68665e; }
+.cash-metrics { margin: 15px 0; }
+.cash-metrics > div { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--admin-line); font-size: 11px; }
+.cash-metrics dd { margin: 0; font: 500 12px var(--admin-mono); text-align: right; }
+.cash-account-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.cash-account-cards article { display: flex; flex-direction: column; gap: 12px; border-top: 3px solid #bfb9a7; }
+.cash-account-cards .cash-selected { border-top-color: var(--admin-red); }
+.cash-account-cards article p, .cash-account-cards article h3 { margin: 0; }
+.cash-account-cards article strong { font: 700 31px var(--admin-display); overflow-wrap: anywhere; }
+.cash-account-cards article small { color: var(--admin-muted); }
+.cash-account-cards button { margin-top: auto; }
+.cash-book-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 15px 0; font-size: 11px; }
+.paper-ledger { background: #fffcf3; border: 1px solid #d8ccb4; box-shadow: 2px 3px 0 #e9e1cf, 4px 6px 0 #f1eadc; margin-block: 12px 18px; }
+.paper-ledger .admin-table { background: transparent; font-family: var(--admin-mono); }
+.paper-ledger .admin-table th { background: #f2ead9; border-bottom: 2px solid #c6b897; color: #75664b; }
+.paper-ledger .admin-table td { border-bottom: 1px solid #d7dddc; line-height: 1.6; padding-block: 12px; }
+.paper-ledger .admin-table td:first-child { border-right: 1px solid #d99d9666; }
+.paper-ledger small { display: block; color: #8b806b; overflow-wrap: anywhere; }
+.paper-ledger td { max-width: 260px; overflow-wrap: anywhere; }
+.cash-lines { list-style: none; padding: 0; margin-block: 16px; }
+.cash-lines li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--admin-line); padding: 10px 0; font-size: 12px; }
+.cash-export { margin-top: 25px; display: grid; gap: 10px; }
+.cash-export p { color: var(--admin-muted); font-size: 11px; line-height: 1.6; }
+.cash-muted { color: var(--admin-muted); }
+.cash-sale-line { padding: 12px; margin-bottom: 12px; background: #f6f3ec; border: 1px solid var(--admin-line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cash-allocation-list { min-width: 0; border: 1px solid var(--admin-line); padding: 12px; }
+.cash-allocation-list .cash-allocation { display: grid; grid-template-columns: 18px minmax(0, 1fr) 110px; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--admin-line); }
+.cash-allocation input[type=checkbox] { width: 16px; min-height: 16px; }
+.cash-allocation small { display: block; margin-top: 4px; }
+.cash-allocation input:disabled { background: #eeece5; color: #888; }
+.cash-dialog footer { flex-wrap: wrap; }
+@media (max-width: 1100px) { .cash-account-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cash-report-grid, .cash-settlements { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { .cash-account-cards, .cash-sale-line { grid-template-columns: minmax(0, 1fr); } .cash-nav button { flex: 1 1 100px; } .cash-allocation-list .cash-allocation { grid-template-columns: 18px minmax(0, 1fr); } .cash-allocation input[type=number] { grid-column: 2; } .cash-range { align-items: stretch; } .cash-range label { min-width: 0; flex: 1 1 130px; } }

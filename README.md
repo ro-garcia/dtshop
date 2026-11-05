@@ -18,6 +18,28 @@ Abre `index.html` en Chrome o Edge. No necesita instalación ni proceso de compi
 
 El catálogo, los precios y el checkout son una maqueta front-end: no hay inventario, pagos, reservas ni pedidos conectados a un servicio real.
 
+### Panel de demostración
+
+Abre `admin.html` e ingresa cualquier correo válido y una clave de prueba. Funciona tanto localmente como en GitHub Pages. No autentica usuarios ni guarda contraseñas: los cambios del panel se conservan únicamente en el navegador utilizado y no publican cambios para otros visitantes.
+
+### Verificación del panel
+
+Con Node.js, el paquete `playwright` y Microsoft Edge disponibles, ejecuta `node tests/admin.cjs`. Comprueba el acceso desde un dominio no local, la persistencia y cierre de sesión, el editor y la ausencia de desbordamiento horizontal en las ocho secciones a cinco anchos de pantalla.
+
+### Contabilidad (frontend)
+
+En el menú del administrador, **Contabilidad** permite probar préstamos, financiamientos y tarjetas con tres obligaciones ficticias. Incluye pagos desglosados, abonos a capital, consumos/cargos de tarjeta, comprobantes por archivo, consulta de cuotas y exportación JSON/CSV para análisis. Los importes se calculan en centavos y se agrupan por moneda.
+
+Este módulo es una demostración en memoria: **sus cambios y comprobantes se pierden al recargar**, a diferencia del catálogo. No conecta bancos ni un backend. La interfaz y el repositorio de datos están separados; consulta [el contrato de integración](docs/accounting-api.md) para conectar una API en el futuro y conocer las reglas de cálculo del prototipo.
+
+### Cuentas, ingresos, ventas y mensajería
+
+Contabilidad ahora incluye Resumen, Cuentas y caja, Ventas y cobros, Mensajería, Ingresos y gastos y Obligaciones. Permite anticipos y pagos en distintas cuentas o efectivo, envío incluido/adicional, cobros individuales de Forza y liquidaciones individuales o agrupadas de Fast Delivery. El depósito real se concilia con retenciones y ajustes, sin duplicar entradas. Cada cobro puede tener comprobante.
+
+Los libros de cuentas y obligaciones tienen apariencia de papel. El resumen compara rangos diarios, semanales y mensuales, separando efectivo disponible, ventas, saldos por cobrar y dinero pendiente de mensajería. Las cuotas se registran por monto total, sin desglose obligatorio; el saldo del banco es opcional y queda marcado por actualizar si no se informa.
+
+Consulta [el contrato de control de dinero](docs/cash-api.md) para el modelo de datos, exportaciones e integración futura. La versión sigue siendo **frontend con ejemplos, sin persistencia al recargar**. Las ventas web son registros de demostración: el checkout todavía no genera pedidos reales.
+
 ## Estructura
 
 ```text

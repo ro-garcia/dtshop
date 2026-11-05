@@ -1,196 +1,5 @@
 (() => {
-  const products = {
-    "tee-noche": {
-      name: "Playera gráfica RIPNDIP",
-      category: "RIPNDIP / PLAYERA",
-      variantName: "talla",
-      price: 299,
-      image: "assets/ripndip-tee.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Persona con una prenda gráfica negra puesta en un look urbano.",
-      description: "Playera negra con gráfica ilustrada de RIPNDIP. Consulta disponibilidad y tallas con Dirtytask."
-    },
-    "tee-grateful": {
-      name: "Playera gráfica negra",
-      category: "GRÁFICA / PLAYERA",
-      variantName: "talla",
-      price: 349,
-      image: "assets/grateful-tee.jpg",
-      lookImage: "assets/beard-black-tee.jpg",
-      lookAlt: "Persona con una playera negra en un look urbano.",
-      description: "Playera negra con gráfico circular de estilo psicodélico. Consulta las tallas disponibles con Dirtytask."
-    },
-    "tee-solar": {
-      name: "Playera gráfica ilustrada",
-      category: "GRÁFICA / PLAYERA",
-      variantName: "talla",
-      price: 299,
-      image: "assets/graphic-tee.jpg",
-      lookImage: "assets/look-white-hoodie.jpg",
-      lookAlt: "Persona con una prenda clara en un look urbano.",
-      description: "Playera con ilustración azul y amarilla. Consulta disponibilidad y tallas con Dirtytask."
-    },
-    "clogs-pokemon": {
-      name: "Clogs Crocs x Pokémon",
-      category: "CROCS X POKÉMON / CLOGS",
-      variantName: "talla",
-      price: 699,
-      image: "assets/pokemon-clogs.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Look streetwear completo con calzado puesto.",
-      description: "Clogs de Pikachu, Jigglypuff y Gengar de la colección Crocs x Pokémon."
-    },
-    "sneakers-adidas": {
-      name: "Sneakers Adidas",
-      category: "ADIDAS / SNEAKERS",
-      variantName: "talla",
-      price: 1190,
-      image: "assets/adidas-sneakers.jpg",
-      lookImage: "assets/leather-denim.jpg",
-      lookAlt: "Look urbano completo con sneakers blancos puestos.",
-      description: "Par blanco con detalles negros, mostrado en una foto publicada por Dirtytask. Modelo exacto, tallas y precio deben confirmarse con la tienda."
-    },
-    "tumbler-ripndip": {
-      name: "Vaso térmico RIPNDIP",
-      category: "RIPNDIP / ACCESORIOS",
-      variantName: "variante",
-      price: 399,
-      image: "assets/ripndip-tumbler.jpg",
-      lookImage: "assets/campaign-city.jpg",
-      lookAlt: "Look urbano para combinar accesorios streetwear.",
-      description: "Vaso térmico azul con ilustración de gato. Consulta disponibilidad con Dirtytask."
-    },
-    "preorder-pikachu": {
-      name: "Pikachu Classic Clog",
-      category: "CROCS X POKÉMON / PREVENTA",
-      variantName: "talla",
-      preorder: true,
-      price: 899,
-      image: "assets/pokemon-clogs.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Look streetwear completo con calzado puesto.",
-      description: "Pikachu Classic Clog de la colección Crocs x Pokémon. Consulta tallas y fecha de llegada con Dirtytask."
-    },
-    "preorder-jigglypuff": {
-      name: "Jigglypuff Classic Clog",
-      category: "CROCS X POKÉMON / PREVENTA",
-      variantName: "talla",
-      preorder: true,
-      price: 899,
-      image: "assets/pokemon-clogs.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Look streetwear completo con calzado puesto.",
-      description: "Jigglypuff Classic Clog de la colección Crocs x Pokémon. Consulta tallas y fecha de llegada con Dirtytask."
-    },
-    "preorder-gengar": {
-      name: "Gengar Classic Clog",
-      category: "CROCS X POKÉMON / PREVENTA",
-      variantName: "talla",
-      preorder: true,
-      price: 949,
-      image: "assets/pokemon-clogs.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Look streetwear completo con calzado puesto.",
-      description: "Gengar Classic Clog de la colección Crocs x Pokémon. Consulta tallas y fecha de llegada con Dirtytask."
-    },
-    "denim-wide-leg": {
-      name: "Denim Wide Leg 502",
-      category: "DENIM / PANTALÓN",
-      variantName: "talla",
-      price: 790,
-      image: "assets/leather-denim.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Pantalón amplio dentro de un look streetwear.",
-      description: "Denim de corte amplio con silueta relajada para llevarlo todos los días."
-    },
-    "overshirt-canvas": {
-      name: "Utility Canvas Jacket",
-      category: "UTILITY / CHAQUETA",
-      variantName: "talla",
-      price: 890,
-      image: "assets/tan-jacket.jpg",
-      lookImage: "assets/campaign-city.jpg",
-      lookAlt: "Chaqueta utilitaria dentro de un look urbano.",
-      description: "Chaqueta utilitaria en tono arena, con una silueta versátil para combinar en capas."
-    },
-    "bomber-afterhours": {
-      name: "Bomber Afterhours",
-      category: "AFTERHOURS / BOMBER",
-      variantName: "talla",
-      price: 990,
-      image: "assets/red-jacket.jpg",
-      lookImage: "assets/leather-denim.jpg",
-      lookAlt: "Bomber de color dentro de un look streetwear.",
-      description: "Bomber de corte relajado con color protagonista y acabado urbano."
-    },
-    "hoodie-cloud": {
-      name: "Hoodie Cloud Wash",
-      category: "CLOUD WASH / HOODIE",
-      variantName: "talla",
-      price: 690,
-      image: "assets/look-white-hoodie.jpg",
-      lookImage: "assets/look-daylight.jpg",
-      lookAlt: "Hoodie claro combinado en un look urbano.",
-      description: "Hoodie de tacto cómodo y volumen relajado, ideal para llevar en capas."
-    },
-    "hoodie-signal": {
-      name: "Hoodie Signal",
-      category: "SIGNAL / HOODIE",
-      variantName: "talla",
-      price: 720,
-      image: "assets/look-daylight.jpg",
-      lookImage: "assets/look-white-hoodie.jpg",
-      lookAlt: "Hoodie gráfico combinado en un look de calle.",
-      description: "Hoodie gráfico de inspiración nocturna con ajuste relajado."
-    },
-    "tee-afterhours": {
-      name: "Afterhours Graphic Tee",
-      category: "AFTERHOURS / T-SHIRT",
-      variantName: "talla",
-      price: 380,
-      image: "assets/ripndip-tee.jpg",
-      lookImage: "assets/beard-black-tee.jpg",
-      lookAlt: "Playera gráfica oscura dentro de un look urbano.",
-      description: "Playera gráfica de algodón con una silueta clásica y fácil de combinar."
-    },
-    "tee-static": {
-      name: "Static Print Tee",
-      category: "STATIC / T-SHIRT",
-      variantName: "talla",
-      price: 350,
-      image: "assets/graphic-tee.jpg",
-      lookImage: "assets/look-white-hoodie.jpg",
-      lookAlt: "Playera gráfica en un look streetwear.",
-      description: "Playera de fit relajado con una gráfica ilustrada de alto contraste."
-    },
-    "crewneck-crossfade": {
-      name: "Crossfade Crewneck",
-      category: "CROSSFADE / CREWNECK",
-      variantName: "talla",
-      price: 790,
-      image: "assets/grateful-tee.jpg",
-      lookImage: "assets/red-jacket.jpg",
-      lookAlt: "Prenda gráfica combinada en un look urbano.",
-      description: "Crewneck de peso medio con gráfico frontal y corte amplio."
-    }
-  };
-  products["tee-noche"].variants = ["S", "M", "L", "XL", "XXL"];
-  products["tee-grateful"].variants = ["S", "M", "L", "XL", "XXL"];
-  products["tee-solar"].variants = ["S", "M", "L", "XL", "XXL"];
-  products["clogs-pokemon"].variants = ["37", "38", "39", "40", "41", "42", "43"];
-  products["sneakers-adidas"].variants = ["37", "38", "39", "40", "41", "42", "43"];
-  products["tumbler-ripndip"].variants = ["Única"];
-  products["preorder-pikachu"].variants = ["37", "38", "39", "40", "41", "42", "43"];
-  products["preorder-jigglypuff"].variants = ["37", "38", "39", "40", "41", "42", "43"];
-  products["preorder-gengar"].variants = ["37", "38", "39", "40", "41", "42", "43"];
-  products["denim-wide-leg"].variants = ["28", "30", "32", "34", "36"];
-  products["overshirt-canvas"].variants = ["S", "M", "L", "XL"];
-  products["bomber-afterhours"].variants = ["S", "M", "L", "XL"];
-  products["hoodie-cloud"].variants = ["S", "M", "L", "XL"];
-  products["hoodie-signal"].variants = ["S", "M", "L", "XL"];
-  products["tee-afterhours"].variants = ["S", "M", "L", "XL"];
-  products["tee-static"].variants = ["S", "M", "L", "XL"];
-  products["crewneck-crossfade"].variants = ["S", "M", "L", "XL"];
+  const products = {};
   const cards = Array.from(document.querySelectorAll(".product-card"));
   const catalogPhotoCards = Array.from(document.querySelectorAll(".product-card, .editorial-product-card"));
   const filters = Array.from(document.querySelectorAll(".filter-button"));
@@ -224,7 +33,8 @@
   let toastTimeout;
   let cart = [];
   try {
-    const savedCart = JSON.parse(localStorage.getItem("dirtytask-demo-cart") || "[]");
+    localStorage.removeItem("dirtytask-demo-cart");
+    const savedCart = JSON.parse(localStorage.getItem("dirtytask-cart") || "[]");
     if (Array.isArray(savedCart)) cart = savedCart.filter((item) => products[item.id] && products[item.id].variants.includes(item.size) && Number.isFinite(item.qty) && item.qty > 0);
   } catch (_) {
     cart = [];
@@ -235,7 +45,7 @@
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
   })[char]);
   const saveCart = () => {
-    try { localStorage.setItem("dirtytask-demo-cart", JSON.stringify(cart)); } catch (_) { /* The cart still works for this visit. */ }
+    try { localStorage.setItem("dirtytask-cart", JSON.stringify(cart)); } catch (_) { /* The cart still works for this visit. */ }
   };
   const announce = (message) => {
     const toast = document.getElementById("toast");
@@ -328,12 +138,17 @@
       if (!card.hidden) visibleCount += 1;
     });
     resultCount.textContent = visibleCount + (visibleCount === 1 ? " pieza" : " piezas");
+    const totalCount = document.querySelector('[data-filter="all"] span');
+    if (totalCount) totalCount.textContent = String(cards.length).padStart(2, "0");
     emptyState.hidden = visibleCount !== 0;
     grid.hidden = visibleCount === 0;
     if (visibleCount === 0) {
       const emptyTitle = document.getElementById("emptyTitle");
       const emptyCopy = document.getElementById("emptyCopy");
-      if (query) {
+      if (!cards.length) {
+        emptyTitle.textContent = "El catálogo está vacío.";
+        emptyCopy.textContent = "Las piezas publicadas aparecerán aquí cuando se conecte el inventario.";
+      } else if (query) {
         emptyTitle.textContent = "No encontramos esa pieza.";
         emptyCopy.textContent = "Prueba otra palabra o revisa una subcategoría distinta.";
       } else if (activeFilter === "hoodies") {
@@ -540,6 +355,7 @@
     if (item.open) launchItems.forEach((other) => { if (other !== item) other.open = false; });
   }));
 
+  applyFilters();
   renderCart();
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
     document.documentElement.classList.add("js-ready");

@@ -1,50 +1,15 @@
 (() => {
   const STORAGE_KEY = "dirtytask-admin-data";
-  const SESSION_KEY = "dirtytask-admin-demo-session";
-  const localHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-  const categoryLabels = {
-    sneakers: "Sneakers", hoodies: "Hoodies", tshirts: "T-Shirts", clogs: "Clogs",
-    accessories: "Accesorios", denim: "Denim", outerwear: "Chaquetas"
-  };
-  const imageAssets = [
-    { path: "assets/adidas-sneakers.jpg", label: "Sneakers Adidas" },
-    { path: "assets/beard-black-tee.jpg", label: "Look camiseta negra" },
-    { path: "assets/campaign-city.jpg", label: "Look campaña urbana" },
-    { path: "assets/graphic-tee.jpg", label: "Playera gráfica azul" },
-    { path: "assets/grateful-tee.jpg", label: "Playera gráfica negra" },
-    { path: "assets/leather-denim.jpg", label: "Look denim" },
-    { path: "assets/look-daylight.jpg", label: "Look urbano" },
-    { path: "assets/look-white-hoodie.jpg", label: "Look hoodie" },
-    { path: "assets/pokemon-clogs.jpg", label: "Crocs x Pokémon" },
-    { path: "assets/red-jacket.jpg", label: "Chaqueta roja" },
-    { path: "assets/ripndip-tee.jpg", label: "Playera RIPNDIP" },
-    { path: "assets/ripndip-tumbler.jpg", label: "Vaso RIPNDIP" },
-    { path: "assets/tan-jacket.jpg", label: "Chaqueta utilitaria" }
-  ];
-  const sizeApparel = ["S", "M", "L", "XL", "XXL"];
-  const sizeShoes = ["37", "38", "39", "40", "41", "42", "43"];
-  const seedProducts = [
-    { id: "tee-noche", name: "Playera gráfica RIPNDIP", category: "tshirts", price: 299, image: "assets/ripndip-tee.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: sizeApparel, description: "Playera negra con gráfica ilustrada de RIPNDIP.", stock: 0, status: "active", published: true },
-    { id: "tee-grateful", name: "Playera gráfica negra", category: "tshirts", price: 349, image: "assets/grateful-tee.jpg", lookImage: "assets/beard-black-tee.jpg", variantName: "talla", variants: sizeApparel, description: "Playera negra con gráfico circular de estilo psicodélico.", stock: 0, status: "active", published: true },
-    { id: "tee-solar", name: "Playera gráfica ilustrada", category: "tshirts", price: 299, image: "assets/graphic-tee.jpg", lookImage: "assets/look-white-hoodie.jpg", variantName: "talla", variants: sizeApparel, description: "Playera con ilustración azul y amarilla.", stock: 0, status: "active", published: true },
-    { id: "clogs-pokemon", name: "Clogs Crocs x Pokémon", category: "clogs", price: 699, image: "assets/pokemon-clogs.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: sizeShoes, description: "Clogs de Pikachu, Jigglypuff y Gengar.", stock: 0, status: "active", published: true },
-    { id: "sneakers-adidas", name: "Sneakers Adidas", category: "sneakers", price: 1190, image: "assets/adidas-sneakers.jpg", lookImage: "assets/leather-denim.jpg", variantName: "talla", variants: sizeShoes, description: "Par blanco con detalles negros.", stock: 0, status: "active", published: true },
-    { id: "tumbler-ripndip", name: "Vaso térmico RIPNDIP", category: "accessories", price: 399, image: "assets/ripndip-tumbler.jpg", lookImage: "assets/campaign-city.jpg", variantName: "variante", variants: ["Única"], description: "Vaso térmico azul con ilustración de gato.", stock: 0, status: "active", published: true },
-    { id: "preorder-pikachu", name: "Pikachu Classic Clog", category: "clogs", price: 899, image: "assets/pokemon-clogs.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: sizeShoes, description: "Pikachu Classic Clog de la colección Crocs x Pokémon.", stock: 0, status: "active", published: false, preorder: true },
-    { id: "preorder-jigglypuff", name: "Jigglypuff Classic Clog", category: "clogs", price: 899, image: "assets/pokemon-clogs.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: sizeShoes, description: "Jigglypuff Classic Clog de la colección Crocs x Pokémon.", stock: 0, status: "active", published: false, preorder: true },
-    { id: "preorder-gengar", name: "Gengar Classic Clog", category: "clogs", price: 949, image: "assets/pokemon-clogs.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: sizeShoes, description: "Gengar Classic Clog de la colección Crocs x Pokémon.", stock: 0, status: "active", published: false, preorder: true },
-    { id: "denim-wide-leg", name: "Denim Wide Leg 502", category: "denim", price: 790, image: "assets/leather-denim.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: ["28", "30", "32", "34", "36"], description: "Denim de corte amplio con silueta relajada.", stock: 0, status: "draft", published: false },
-    { id: "overshirt-canvas", name: "Utility Canvas Jacket", category: "outerwear", price: 890, image: "assets/tan-jacket.jpg", lookImage: "assets/campaign-city.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Chaqueta utilitaria en tono arena.", stock: 0, status: "draft", published: false },
-    { id: "bomber-afterhours", name: "Bomber Afterhours", category: "outerwear", price: 990, image: "assets/red-jacket.jpg", lookImage: "assets/leather-denim.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Bomber de corte relajado con color protagonista.", stock: 0, status: "draft", published: false },
-    { id: "hoodie-cloud", name: "Hoodie Cloud Wash", category: "hoodies", price: 690, image: "assets/look-white-hoodie.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Hoodie cómodo de volumen relajado.", stock: 0, status: "draft", published: false },
-    { id: "hoodie-signal", name: "Hoodie Signal", category: "hoodies", price: 720, image: "assets/look-daylight.jpg", lookImage: "assets/look-white-hoodie.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Hoodie gráfico de inspiración nocturna.", stock: 0, status: "draft", published: false },
-    { id: "tee-afterhours", name: "Afterhours Graphic Tee", category: "tshirts", price: 380, image: "assets/ripndip-tee.jpg", lookImage: "assets/beard-black-tee.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Playera gráfica de algodón con silueta clásica.", stock: 0, status: "draft", published: false },
-    { id: "tee-static", name: "Static Print Tee", category: "tshirts", price: 350, image: "assets/graphic-tee.jpg", lookImage: "assets/look-white-hoodie.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Playera de fit relajado con gráfica ilustrada.", stock: 0, status: "draft", published: false },
-    { id: "crewneck-crossfade", name: "Crossfade Crewneck", category: "hoodies", price: 790, image: "assets/grateful-tee.jpg", lookImage: "assets/red-jacket.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "Crewneck de peso medio con corte amplio.", stock: 0, status: "draft", published: false }
-  ];
+  // Authentication is managed by admin-auth.js; local demo tokens grant no access.
+  let categoryLabels = Object.create(null);
+  let categoriesReady = false;
+  let categoriesMessage = 'Las categorías se cargarán al iniciar sesión.';
+  let categoriesRequest = 0;
+
+  const demoProductIds = new Set(["tee-noche", "tee-grateful", "tee-solar", "clogs-pokemon", "sneakers-adidas", "tumbler-ripndip", "preorder-pikachu", "preorder-jigglypuff", "preorder-gengar", "denim-wide-leg", "overshirt-canvas", "bomber-afterhours", "hoodie-cloud", "hoodie-signal", "tee-afterhours", "tee-static", "crewneck-crossfade"]);
   const seed = {
-    products: seedProducts,
-    launches: [{ id: "drop-02", name: "Crocs × Pokémon", launchDate: "2026-11-14", arrivalDate: "02–06 DIC 2026", image: "assets/pokemon-clogs.jpg", status: "open", productIds: ["preorder-pikachu", "preorder-jigglypuff", "preorder-gengar"] }],
+    products: [],
+    launches: [],
     content: {
       heroCopy: "Streetwear, cultura sneaker y piezas con actitud. Encuentra tu próximo outfit y descubre la selección de Dirtytask Store. También te traemos la prenda que tú quieras.",
       feedCopy: "Las mejores marcas de todo el mundo en Guatemala.",
@@ -53,6 +18,7 @@
       videos: ["https://www.tiktok.com/@dirtytask/video/7326274171879591173", "https://www.tiktok.com/@dirtytask/video/7322528374738488581", "https://www.tiktok.com/@dirtytask/video/7265850704454077702", "https://www.tiktok.com/@dirtytask/video/7689297049241603335", "https://www.tiktok.com/@dirtytask/video/7663144684067343624", "https://www.tiktok.com/@dirtytask/video/7662516090895043848"]
     },
     settings: { shippingGuatemala: 25, shippingOther: 35, payments: { cash: true, visaInstallments: true, visalink: true } },
+    profile: { displayName: "Administrador", avatar: "" },
     orders: []
   };
 
@@ -93,18 +59,18 @@
   };
   const normalizeState = (raw) => {
     const value = raw && typeof raw === "object" ? raw : {};
-    const products = clone(seed.products);
+    const products = [];
     if (Array.isArray(value.products)) {
       value.products.forEach((saved) => {
-        if (!saved || typeof saved.id !== "string" || !/^[a-z0-9-]{2,50}$/.test(saved.id)) return;
+        if (!saved || typeof saved.id !== "string" || !/^[a-z0-9-]{2,50}$/.test(saved.id) || demoProductIds.has(saved.id)) return;
         const existing = products.find((product) => product.id === saved.id);
         const clean = {
           ...saved,
           name: String(saved.name || "Producto nuevo").slice(0, 80),
-          category: categoryLabels[saved.category] ? saved.category : "tshirts",
+          category: typeof saved.category === "string" ? saved.category : "",
           price: Number.isFinite(Number(saved.price)) && Number(saved.price) >= 0 ? Number(saved.price) : 0,
-          image: validProductImage(saved.image) ? saved.image : "assets/graphic-tee.jpg",
-          lookImage: validProductImage(saved.lookImage) ? saved.lookImage : "assets/look-daylight.jpg",
+          image: validProductImage(saved.image) ? saved.image : "",
+          lookImage: validProductImage(saved.lookImage) ? saved.lookImage : "",
           variants: Array.isArray(saved.variants) ? saved.variants.map((item) => String(item).slice(0, 12)).filter(Boolean).slice(0, 20) : ["Única"],
           stock: Math.max(0, Number.parseInt(saved.stock, 10) || 0),
           status: ["active", "draft", "archived"].includes(saved.status) ? saved.status : "draft",
@@ -120,10 +86,10 @@
       name: String(launch?.name || "Nuevo lanzamiento").slice(0, 90),
       launchDate: String(launch?.launchDate || "").slice(0, 40),
       arrivalDate: String(launch?.arrivalDate || "").slice(0, 60),
-      image: validAsset(launch?.image) ? launch.image : "assets/pokemon-clogs.jpg",
+      image: validProductImage(launch?.image) ? launch.image : "",
       status: ["open", "upcoming", "closed"].includes(launch?.status) ? launch.status : "upcoming",
       productIds: Array.isArray(launch?.productIds) ? launch.productIds.filter((id) => products.some((product) => product.id === id)).slice(0, 12) : []
-    })) : clone(seed.launches);
+    })).filter((launch) => !(launch.id === "drop-02" && /crocs/i.test(launch.name))) : [];
     const content = { ...seed.content, ...(value.content || {}) };
     content.heroCopy = String(content.heroCopy || "").slice(0, 240);
     content.feedCopy = String(content.feedCopy || "").slice(0, 140);
@@ -134,56 +100,154 @@
     settings.shippingGuatemala = Math.max(0, Number(settings.shippingGuatemala) || 0);
     settings.shippingOther = Math.max(0, Number(settings.shippingOther) || 0);
     settings.payments = { ...seed.settings.payments, ...(settings.payments || {}) };
-    return { products, launches, content, settings, orders: Array.isArray(value.orders) ? value.orders : [] };
+    const profile = { ...seed.profile, ...(value.profile || {}) };
+    profile.displayName = String(profile.displayName || "").replace(/\s+/g, " ").trim().slice(0, 60) || seed.profile.displayName;
+    profile.avatar = isDeviceImage(profile.avatar) ? profile.avatar : "";
+    return { products, launches, content, settings, profile, orders: Array.isArray(value.orders) ? value.orders : [] };
   };
 
   let state;
   try { state = normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")); }
   catch (_) { state = normalizeState(null); }
+  window.adminCatalog = { products: () => structuredClone(state.products), launches: () => structuredClone(state.launches) };
   const loginScreen = $("#loginScreen");
   const adminApp = $("#adminApp");
   const loginForm = $("#loginForm");
-  const demoNotice = $("#demoNotice");
   const loginError = $("#loginError");
   const editorDialog = $("#editorDialog");
   const editorForm = $("#editorForm");
   let currentEditor = null;
-
-  if (!localHost) {
-    demoNotice.classList.add("is-blocked");
-    demoNotice.innerHTML = "<strong>Autenticación no configurada.</strong> Esta vista está deshabilitada fuera del entorno local. El sitio estático necesita un backend con login real antes de habilitar el panel en producción.";
-    $$("#loginForm input, #loginForm button").forEach((element) => { element.disabled = true; });
-  }
 
   function setLoggedIn(loggedIn) {
     loginScreen.hidden = loggedIn;
     adminApp.hidden = !loggedIn;
     if (loggedIn) renderAll();
   }
-  if (localHost && sessionStorage.getItem(SESSION_KEY) === "demo") setLoggedIn(true);
-  else setLoggedIn(false);
-
-  loginForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (!localHost) return;
-    const email = $("#loginEmail").value.trim();
-    const password = $("#loginPassword").value;
-    if (!email || !password) {
-      loginError.textContent = "Completa ambos campos para abrir la vista de demostración.";
-      loginError.hidden = false;
-      return;
+  setLoggedIn(false);
+  document.addEventListener("dirtytask:auth", (event) => {
+    if (!event.detail) {
+      document.querySelectorAll("dialog[open]").forEach(dialog => dialog.close());
     }
-    sessionStorage.setItem(SESSION_KEY, "demo");
-    loginError.hidden = true;
-    loginForm.reset();
-    setLoggedIn(true);
+    setLoggedIn(Boolean(event.detail));
+    applyRoleControls();
+    if (event.detail){ loadCategories(), loadProducts(); }
+    else { categoriesRequest++; categoriesReady = false; categoryLabels = Object.create(null); }
   });
-  function logOut() {
-    sessionStorage.removeItem(SESSION_KEY);
-    setLoggedIn(false);
+  const opsControls = '#addVideoButton, #videoList input, [data-remove-video], #addProductButton, #addDropButton, [data-edit-product], [data-edit-drop], #contentForm input, #contentForm textarea, #contentForm button, #saveContentButton, #saveSettingsButton, #shippingForm input, #paymentForm input, #profileForm input, #profileForm button';
+  function applyRoleControls() {
+    const finance = window.adminIdentity?.role === 'partner_finance';
+    document.querySelectorAll(opsControls).forEach(control => {
+      control.disabled = finance;
+      control.title = finance ? 'Edición a cargo del socio de operaciones.' : '';
+    });
   }
-  $("#logoutButton").addEventListener("click", logOut);
-  $("#mobileLogout").addEventListener("click", logOut);
+  // Identity fields remain local-demo settings until profile editing is integrated.
+  document.addEventListener('click', event => {
+    if (window.adminIdentity?.role === 'partner_finance' && event.target.closest(opsControls)) {
+      event.preventDefault(); event.stopImmediatePropagation();
+    }
+  }, true);
+
+function productFromDatabase(row) {
+  // Copiamos las variantes antes de ordenarlas.
+  const variantRows = [...(row.product_variant || [])];
+
+  // Orden numérico; si empatan, ordenamos por etiqueta.
+  variantRows.sort((a, b) =>
+    a.sort_order - b.sort_order || a.label.localeCompare(b.label)
+  );
+
+  // Cada variante es un objeto; la pantalla necesita sus etiquetas.
+  const variantLabels = variantRows.map(variant => variant.label);
+
+  // Cada producto puede tener una imagen principal y una del look.
+  const media = row.product_media || [];
+  const mainPhoto = media.find(photo => photo.kind === 'product');
+  const lookPhoto = media.find(photo => photo.kind === 'look');
+
+  // Convierte una ruta de Storage en URL pública, si existe la ruta.
+  function imageUrl(storageKey) {
+    if (!storageKey) return '';
+
+    const { data } = window.dirtytaskSupabase.storage
+      .from('dtshop-products')
+      .getPublicUrl(storageKey);
+
+    return data.publicUrl;
+  }
+
+  // Devolvemos un objeto nuevo con los nombres que usa el administrador.
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category_code,
+    description: row.description || '',
+    price: Number(row.price_cents) / 100,
+    stock: row.stock,
+    status: row.status,
+    published: row.published,
+    preorder: row.preorder,
+    variantName: row.variant_label,
+    variants: variantLabels,
+    variantRecords: variantRows,
+    image: imageUrl(mainPhoto?.storage_key),
+    lookImage: imageUrl(lookPhoto?.storage_key)
+  };
+}
+
+
+async function loadProducts() {
+  //quien inicia la consulta
+  const userId = window.adminIdentity?.id;
+  if (!userId) return;
+  try {
+    const products = await window.catalogApi.listProducts();
+     if (window.adminIdentity?.id !== userId) return;
+     console.log("Productos cargados desde Supabase:", products);
+     console.table(products);
+  } catch (error) {
+    if (window.adminIdentity?.id !== userId) return;
+    console.error("Error al cargar productos desde Supabase:", error);
+  }
+}
+
+
+  async function loadCategories() {
+    const ticket = ++categoriesRequest;
+    categoriesReady = false;
+    categoriesMessage = 'Cargando categorías de Supabase…';
+    updateCategoryField();
+    try {
+      const rows = await window.catalogApi.listCategories();
+      if (ticket !== categoriesRequest) return;
+      categoryLabels = Object.fromEntries(rows.map(row => [row.code, row.label]));
+      categoriesReady = rows.length > 0;
+      categoriesMessage = rows.length ? 'Categorías sincronizadas con Supabase. El producto aún se guarda en este navegador.' : 'No hay categorías. Agrega registros en dtshop.category y reintenta.';
+      renderProducts(); renderStatistics(); renderOverview();
+      applyRoleControls();
+    } catch (_) {
+      if (ticket !== categoriesRequest) return;
+      categoryLabels = Object.create(null);
+      categoriesMessage = 'No se pudieron cargar las categorías. Revisa la conexión y los permisos de dtshop.category.';
+    }
+    updateCategoryField();
+  }
+  function updateCategoryField() {
+    if (currentEditor?.type !== 'product') return;
+    const select = editorForm.querySelector('[name="category"]');
+    if (!select) return;
+    const selected = select.value || select.dataset.previous || '';
+    select.dataset.previous = selected;
+    select.innerHTML = '<option value="">Selecciona una categoría</option>' + Object.entries(categoryLabels)
+      .map(([code,label]) => '<option value="' + escapeHtml(code) + '">' + escapeHtml(label) + '</option>').join('');
+    select.value = Object.hasOwn(categoryLabels, selected) ? selected : '';
+    select.disabled = !categoriesReady;
+    select.required = true;
+    $('#categoryStatus').textContent = categoriesMessage;
+  }
+  $('#editorFields').addEventListener('click', event => {
+    if (event.target.closest('#retryCategories')) loadCategories();
+  });
 
   function persist() {
     try {
@@ -206,9 +270,10 @@
       return (!query || text.includes(query)) && (filter === "all" || product.status === filter);
     });
     $("#productTableBody").innerHTML = visible.map((product) => '<tr>' +
-      '<td><div class="table-product"><img src="' + escapeHtml(product.image) + '" alt=""><span><strong>' + escapeHtml(product.name) + '</strong><small>' + escapeHtml(product.id) + (product.preorder ? ' · PREVENTA' : '') + '</small></span></div></td>' +
+      '<td><div class="table-product">' + (product.image ? '<img src="' + escapeHtml(product.image) + '" alt="">' : '') + '<span><strong>' + escapeHtml(product.name) + '</strong><small>' + escapeHtml(product.id) + (product.preorder ? ' · PREVENTA' : '') + '</small></span></div></td>' +
       '<td>' + escapeHtml(categoryLabels[product.category] || product.category) + '</td><td class="table-price">' + formatMoney(product.price) + '</td><td class="table-stock">' + Number(product.stock || 0) + '</td><td>' + productStatus(product) + '</td>' +
       '<td><div class="table-actions"><button class="table-action" type="button" data-edit-product="' + escapeHtml(product.id) + '">Editar</button></div></td></tr>').join("");
+    if (!visible.length) $("#productTableBody").innerHTML = '<tr><td colspan="6">No hay productos cargados. Crea el primero cuando el catálogo real esté listo.</td></tr>';
     $("#productTableCount").textContent = visible.length + (visible.length === 1 ? " producto" : " productos");
     $("#productCount").textContent = String(state.products.length);
   }
@@ -220,7 +285,7 @@
       list.innerHTML = state.launches.map((launch) => {
         const productNames = launch.productIds.map((id) => state.products.find((product) => product.id === id)?.name).filter(Boolean);
         const status = launch.status === "open" ? '<span class="status-pill status-active">Reservas abiertas</span>' : launch.status === "closed" ? '<span class="status-pill status-archived">Cerrado</span>' : '<span class="status-pill status-draft">Próximamente</span>';
-        return '<article class="drop-admin-card"><div class="drop-admin-main"><img src="' + escapeHtml(launch.image) + '" alt=""><div><p class="admin-kicker">' + escapeHtml(launch.id) + ' / DIRTYTASK</p><h3>' + escapeHtml(launch.name) + '</h3><p>SALE / ' + escapeHtml(launch.launchDate || "Por definir") + ' · LLEGA / ' + escapeHtml(launch.arrivalDate || "Por definir") + '</p></div></div><div class="drop-admin-side">' + status + '<button class="table-action" type="button" data-edit-drop="' + escapeHtml(launch.id) + '">Editar</button></div><div class="drop-models">MODELOS / ' + escapeHtml(productNames.join(" · ") || "Sin productos vinculados") + '</div></article>';
+        return '<article class="drop-admin-card"><div class="drop-admin-main">' + (launch.image ? '<img src="' + escapeHtml(launch.image) + '" alt="">' : '') + '<div><p class="admin-kicker">' + escapeHtml(launch.id) + ' / DIRTYTASK</p><h3>' + escapeHtml(launch.name) + '</h3><p>SALE / ' + escapeHtml(launch.launchDate || "Por definir") + ' · LLEGA / ' + escapeHtml(launch.arrivalDate || "Por definir") + '</p></div></div><div class="drop-admin-side">' + status + '<button class="table-action" type="button" data-edit-drop="' + escapeHtml(launch.id) + '">Editar</button></div><div class="drop-models">MODELOS / ' + escapeHtml(productNames.join(" · ") || "Sin productos vinculados") + '</div></article>';
       }).join("");
     }
     $("#dropCount").textContent = String(state.launches.filter((launch) => launch.status === "open").length);
@@ -233,7 +298,7 @@
     $("#metricDrops").textContent = String(openDrops.length);
     $("#metricOrders").textContent = "0";
     $("#metricInventory").textContent = String(activeProducts.reduce((sum, product) => sum + Number(product.stock || 0), 0));
-    $("#recentProducts").innerHTML = storefrontProducts.slice(0, 4).map((product) => '<div class="mini-product"><img src="' + escapeHtml(product.image) + '" alt=""><span><strong>' + escapeHtml(product.name) + '</strong><small>' + escapeHtml(categoryLabels[product.category]) + '</small></span><b>' + formatMoney(product.price) + '</b></div>').join("");
+    $("#recentProducts").innerHTML = storefrontProducts.slice(0, 4).map((product) => '<div class="mini-product">' + (product.image ? '<img src="' + escapeHtml(product.image) + '" alt="">' : '') + '<span><strong>' + escapeHtml(product.name) + '</strong><small>' + escapeHtml(categoryLabels[product.category]) + '</small></span><b>' + formatMoney(product.price) + '</b></div>').join("") || '<p class="field-hint">Sin productos publicados.</p>';
     $("#recentDrops").innerHTML = state.launches.slice(0, 4).map((launch) => '<div class="drop-overview-item"><span><strong>' + escapeHtml(launch.name) + '</strong><small>' + escapeHtml(launch.launchDate || "Fecha por definir") + '</small></span>' + (launch.status === "open" ? '<span class="status-pill status-active">Abierto</span>' : '<span class="status-pill status-draft">Programado</span>') + '</div>').join("") || '<p class="field-hint">Sin lanzamientos programados.</p>';
     $("#todayDate").textContent = new Intl.DateTimeFormat("es-GT", { day: "2-digit", month: "short", year: "numeric" }).format(new Date()).toUpperCase();
   }
@@ -285,7 +350,25 @@
     form.elements.feedCopy.value = state.content.feedCopy;
     form.elements.instagramUrl.value = state.content.instagramUrl;
     form.elements.tiktokUrl.value = state.content.tiktokUrl;
-    renderVideos();
+    renderVideos(); applyRoleControls();
+  }
+  function profileInitials(name) {
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0].charAt(0) + parts[1].charAt(0)).toLocaleUpperCase("es");
+    return (parts[0] || "DT").slice(0, 2).toLocaleUpperCase("es");
+  }
+  function renderProfile() {
+    const name = window.adminIdentity?.display_name || state.profile.displayName;
+    const avatar = window.adminIdentity ? "" : state.profile.avatar;
+    const initials = profileInitials(name);
+    const form = $("#profileForm");
+    if (document.activeElement !== form.elements.displayName) form.elements.displayName.value = name;
+    const preview = $("#profileAvatarPreview");
+    preview.innerHTML = avatar ? '<img alt="" src="' + escapeHtml(avatar) + '">' : escapeHtml(initials);
+    const accountAvatar = $("#accountAvatar");
+    accountAvatar.innerHTML = avatar ? '<img alt="" src="' + escapeHtml(avatar) + '">' : escapeHtml(initials);
+    accountAvatar.setAttribute("aria-label", "Editar usuario, " + name);
+    $("#welcomeName").textContent = "Bienvenido: " + name + (window.adminIdentity?.role === "partner_finance" ? " · Finanzas" : window.adminIdentity ? " · Operaciones" : "");
   }
   function renderSettings() {
     const shipping = $("#shippingForm");
@@ -295,16 +378,17 @@
     payments.elements.cash.checked = Boolean(state.settings.payments.cash);
     payments.elements.visaInstallments.checked = Boolean(state.settings.payments.visaInstallments);
     payments.elements.visalink.checked = Boolean(state.settings.payments.visalink);
+    renderProfile();
   }
   function renderAll() {
-    renderOverview(); renderProducts(); renderDrops(); renderStatistics(); renderContent(); renderSettings();
+    renderOverview(); renderProducts(); renderDrops(); renderStatistics(); renderContent(); renderSettings(); applyRoleControls();
   }
 
   function switchView(name) {
-    const id = ["overview", "products", "drops", "stats", "orders", "content", "settings"].includes(name) ? name : "overview";
+    const id = ["overview", "products", "drops", "stats", "orders", "accounting", "content", "settings"].includes(name) ? name : "overview";
     $$(".admin-view").forEach((view) => { view.hidden = view.id !== "view-" + id; });
     $$(".admin-nav-item").forEach((button) => button.classList.toggle("is-active", button.dataset.view === id));
-    const title = { overview: "Resumen", products: "Productos", drops: "Lanzamientos", stats: "Estadísticas", orders: "Pedidos", content: "Contenido", settings: "Configuración" }[id];
+    const title = { overview: "Resumen", products: "Productos", drops: "Lanzamientos", stats: "Estadísticas", orders: "Pedidos", accounting: "Contabilidad", content: "Contenido", settings: "Configuración" }[id];
     $("#viewTitle").textContent = title;
     if (id === "products") renderProducts();
     if (id === "drops") renderDrops();
@@ -353,23 +437,11 @@
     '</div>';
   }
   function renderImagePicker(name, label, selectedPath) {
-    const uploadedAsset = isDeviceImage(selectedPath) ? { path: selectedPath, label: "Foto desde dispositivo", uploaded: true } : null;
-    const availableAssets = uploadedAsset ? [uploadedAsset, ...imageAssets] : imageAssets;
-    const selectedAsset = availableAssets.find((asset) => asset.path === selectedPath) || imageAssets[0];
-    const options = availableAssets.map((asset) => {
-      const selected = asset.path === selectedAsset.path;
-      return '<label class="image-option' + (asset.uploaded ? " image-option-uploaded" : "") + '" data-image-name="' + escapeHtml(asset.label.toLocaleLowerCase("es")) + '"' + (asset.uploaded ? ' data-device-choice="true"' : "") + '>' +
-        '<input type="radio" name="' + name + '" value="' + escapeHtml(asset.path) + '"' + (selected ? " checked" : "") + ' required>' +
-        '<span class="image-option-photo"><img src="' + escapeHtml(asset.path) + '" alt="" loading="lazy"><span class="image-option-check" aria-hidden="true">✓</span></span>' +
-        '<span class="image-option-name">' + escapeHtml(asset.label) + '</span></label>';
-    }).join("");
     return '<fieldset class="image-picker field-wide" data-image-picker="' + name + '">' +
       '<legend>' + escapeHtml(label) + '</legend>' +
-      '<div class="image-picker-preview" aria-live="polite"><img src="' + escapeHtml(selectedAsset.path) + '" alt=""><span><small>SELECCIONADA</small><strong>' + escapeHtml(selectedAsset.label) + '</strong></span></div>' +
-      '<label class="image-device-upload"><input type="file" data-device-image accept="image/jpeg,image/png,image/webp"><span class="image-device-copy"><strong>Elegir desde este dispositivo</strong><small>JPG, PNG o WEBP · se optimiza antes de guardarse</small></span><span class="image-device-cta">Explorar</span></label>' +
-      '<p class="image-picker-status" role="status" aria-live="polite">La foto se conserva solo en este navegador al guardar el producto.</p>' +
-      '<label class="image-picker-search"><span aria-hidden="true">⌕</span><input type="search" data-image-search placeholder="Buscar en biblioteca" aria-label="Buscar imágenes para ' + escapeHtml(label) + '"></label>' +
-      '<div class="image-picker-grid">' + options + '<p class="image-picker-empty" hidden>No hay imágenes con ese nombre.</p></div>' +
+      '<input type="hidden" name="' + name + '" value="' + escapeHtml(selectedPath || '') + '">' +
+      '<input type="file" data-device-image aria-label="' + escapeHtml(label) + '" accept="image/jpeg,image/png,image/webp">' +
+      '<p class="image-picker-status" role="status" aria-live="polite"></p>' +
     '</fieldset>';
   }
   function blobToDataUrl(blob) {
@@ -406,10 +478,6 @@
       if (typeof bitmap.close === "function") bitmap.close();
     }
   }
-  function updateImagePickerPreview(picker, path, label) {
-    picker.querySelector(".image-picker-preview img").src = path;
-    picker.querySelector(".image-picker-preview strong").textContent = label;
-  }
   async function importDeviceImage(input) {
     const file = input.files && input.files[0];
     if (!file) return;
@@ -419,43 +487,13 @@
     status.textContent = "Optimizando imagen…";
     try {
       const dataUrl = await compressDeviceImage(file);
-      picker.querySelectorAll('[data-device-choice="true"]').forEach((option) => option.remove());
-      const option = document.createElement("label");
-      option.className = "image-option image-option-uploaded";
-      option.dataset.imageName = "foto desde dispositivo";
-      option.dataset.deviceChoice = "true";
-      const radio = document.createElement("input");
-      radio.type = "radio";
-      radio.name = picker.dataset.imagePicker;
-      radio.value = dataUrl;
-      radio.checked = true;
-      radio.required = true;
-      const photo = document.createElement("span");
-      photo.className = "image-option-photo";
-      const image = document.createElement("img");
-      image.src = dataUrl;
-      image.alt = "";
-      const check = document.createElement("span");
-      check.className = "image-option-check";
-      check.setAttribute("aria-hidden", "true");
-      check.textContent = "✓";
-      photo.append(image, check);
-      const caption = document.createElement("span");
-      caption.className = "image-option-name";
-      caption.textContent = "Foto desde dispositivo";
-      option.append(radio, photo, caption);
-      const grid = picker.querySelector(".image-picker-grid");
-      grid.prepend(option);
-      picker.querySelectorAll(".image-option").forEach((entry) => { entry.hidden = false; });
-      picker.querySelector("[data-image-search]").value = "";
-      picker.querySelector(".image-picker-empty").hidden = true;
-      updateImagePickerPreview(picker, dataUrl, "Foto desde dispositivo");
-      status.textContent = "Foto lista. Al guardar el producto se conservará en este navegador.";
+      picker.querySelector('input[type="hidden"]').value = dataUrl;
+      status.textContent = "";
     } catch (error) {
       status.textContent = error instanceof Error ? error.message : "No se pudo cargar esa imagen.";
     } finally {
       input.disabled = false;
-      input.value = "";
+      // Keep the selected filename visible in the native file control.
     }
   }
   function updateModelPickerSelection() {
@@ -478,18 +516,6 @@
     selectButton.title = selectButton.disabled && remaining === 0 ? "Ya seleccionaste el máximo de 12 modelos." : "";
   }
   $("#editorFields").addEventListener("input", (event) => {
-    if (event.target.matches("[data-image-search]")) {
-      const picker = event.target.closest(".image-picker");
-      const query = event.target.value.trim().toLocaleLowerCase("es");
-      const options = Array.from(picker.querySelectorAll(".image-option"));
-      let matches = 0;
-      options.forEach((option) => {
-        option.hidden = !option.dataset.imageName.includes(query);
-        if (!option.hidden) matches += 1;
-      });
-      picker.querySelector(".image-picker-empty").hidden = matches > 0;
-      return;
-    }
     if (event.target.id !== "modelPickerSearch") return;
     const query = event.target.value.trim().toLocaleLowerCase("es");
     const rows = Array.from($("#modelPickerList").querySelectorAll(".model-choice"));
@@ -504,12 +530,6 @@
   $("#editorFields").addEventListener("change", (event) => {
     if (event.target.matches("[data-device-image]")) {
       importDeviceImage(event.target);
-      return;
-    }
-    if (event.target.matches('input[type="radio"][name="image"], input[type="radio"][name="lookImage"]')) {
-      const picker = event.target.closest(".image-picker");
-      const asset = imageAssets.find((entry) => entry.path === event.target.value);
-      updateImagePickerPreview(picker, event.target.value, asset?.label || "Foto desde dispositivo");
       return;
     }
     if (!event.target.matches('input[name="productIds"]')) return;
@@ -531,6 +551,7 @@
       updateModelPickerSelection();
       return;
     }
+    if (!$("#modelPickerList")) return;
     const visible = Array.from($("#modelPickerList").querySelectorAll(".model-choice:not([hidden]) input[name='productIds']:not(:disabled)"));
     if (event.target.closest("#selectVisibleModels")) {
       $("#editorMessage").hidden = true;
@@ -555,28 +576,30 @@
     $("#deleteEntryButton").hidden = !item;
     $("#deleteEntryButton").textContent = type === "product" ? "Archivar producto" : "Eliminar lanzamiento";
     if (type === "product") {
-      const product = item || { id: "", name: "", category: "tshirts", price: 0, image: "assets/graphic-tee.jpg", lookImage: "assets/look-daylight.jpg", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "", stock: 0, status: "draft", published: false, preorder: false };
+      const product = item || { id: "", name: "", category: "tshirts", price: 0, image: "", lookImage: "", variantName: "talla", variants: ["S", "M", "L", "XL"], description: "", stock: 0, status: "draft", published: false, preorder: false };
       $("#editorFields").innerHTML = field("Identificador", "id", product.id || slug(product.name), { required: true, readonly: Boolean(item) }) +
         field("Nombre del producto", "name", product.name, { required: true }) +
-        field("Categoría", "category", product.category, { select: Object.entries(categoryLabels) }) +
+        field("Categoría", "category", product.category, { select: [[product.category, categoryLabels[product.category] || product.category]] }) +
+        '<div class="field-hint"><p id="categoryStatus" role="status"></p><button id="retryCategories" type="button" class="admin-button admin-button-quiet">Actualizar categorías</button></div>' +
         field("Precio (GTQ)", "price", product.price, { type: "number", min: 0, step: 1, required: true }) +
         renderImagePicker("image", "Foto del producto", product.image) +
-        renderImagePicker("lookImage", "Foto del Look", product.lookImage || "assets/look-daylight.jpg") +
+        renderImagePicker("lookImage", "Foto del Look", product.lookImage) +
         field("Tipo de variante", "variantName", product.variantName || "talla", { select: [["talla", "Talla"], ["variante", "Variante"]] }) +
         field("Tallas o variantes · separadas por coma", "variants", (product.variants || []).join(", "), { wide: true }) +
         field("Unidades registradas", "stock", product.stock || 0, { type: "number", min: 0, step: 1 }) +
         field("Estado", "status", product.status, { select: [["active", "Activo"], ["draft", "Borrador"], ["archived", "Archivado"]] }) +
         field("Descripción", "description", product.description || "", { textarea: true, wide: true }) +
         checkField("Visible en el catálogo", "published", product.published) + checkField("Producto de preventa", "preorder", product.preorder);
+      updateCategoryField();
     } else {
-      const launch = item || { id: nextDropId(), name: "", launchDate: "", arrivalDate: "", image: "assets/pokemon-clogs.jpg", status: "upcoming", productIds: [] };
+      const launch = item || { id: nextDropId(), name: "", launchDate: "", arrivalDate: "", image: "", status: "upcoming", productIds: [] };
       const products = state.products.filter((product) => product.status !== "archived" || launch.productIds.includes(product.id));
       $("#editorFields").innerHTML = field("Identificador", "id", launch.id || nextDropId(), { required: true, readonly: Boolean(item) }) +
         field("Nombre del lanzamiento", "name", launch.name, { required: true }) +
         field("Fecha de lanzamiento", "launchDate", launch.launchDate, { type: "date" }) +
         field("Llegada a Guatemala", "arrivalDate", launch.arrivalDate) +
         field("Estado", "status", launch.status, { select: [["upcoming", "Próximamente"], ["open", "Reservas abiertas"], ["closed", "Cerrado"]] }) +
-        field("Imagen · ruta en assets", "image", launch.image, { wide: true }) +
+        renderImagePicker("image", "Imagen del lanzamiento", launch.image) +
         renderModelPicker(products, launch);
       updateModelPickerSelection();
     }
@@ -607,21 +630,23 @@
   editorForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!currentEditor) return;
+    if (editorForm.querySelector("[data-device-image]:disabled")) return showEditorError("Espera a que termine de procesarse la imagen.");
     const form = new FormData(editorForm);
     const id = String(form.get("id") || "").trim();
     const existing = currentEditor.id;
     if (!/^[a-z0-9-]{2,50}$/.test(id)) return showEditorError("Usa un identificador simple: letras minúsculas, números y guiones.");
     if (currentEditor.type === "product") {
+      if (!categoriesReady || !Object.hasOwn(categoryLabels, String(form.get("category") || ""))) return showEditorError("Selecciona una categoría válida de Supabase.");
       const image = String(form.get("image") || "").trim();
       const lookImage = String(form.get("lookImage") || "").trim();
-      if (!validAsset(image) || (lookImage && !validAsset(lookImage))) return showEditorError("Las imágenes deben apuntar a archivos permitidos dentro de assets/.");
+      if (!validProductImage(image) || (lookImage && !validProductImage(lookImage))) return showEditorError("Selecciona una imagen JPG, PNG o WEBP válida.");
       if (!existing && state.products.some((product) => product.id === id)) return showEditorError("Ya existe un producto con ese identificador.");
       const variants = String(form.get("variants") || "Única").split(",").map((value) => value.trim()).filter(Boolean).slice(0, 20);
       if (!variants.length) return showEditorError("Agrega al menos una talla o variante.");
       const original = state.products.find((product) => product.id === existing);
       const product = {
         id, name: String(form.get("name") || "").trim().slice(0, 80), category: String(form.get("category") || "tshirts"),
-        price: Math.max(0, Number(form.get("price")) || 0), image, lookImage: lookImage || "assets/look-daylight.jpg",
+        price: Math.max(0, Number(form.get("price")) || 0), image, lookImage,
         variantName: String(form.get("variantName") || original?.variantName || "talla"), variants,
         description: String(form.get("description") || "").trim().slice(0, 240), stock: Math.max(0, Number.parseInt(form.get("stock"), 10) || 0),
         status: String(form.get("status") || "draft"), published: form.has("published"), preorder: form.has("preorder")
@@ -630,8 +655,8 @@
       if (existing) state.products = state.products.map((entry) => entry.id === existing ? product : entry); else state.products.unshift(product);
     } else {
       if (!existing && state.launches.some((launch) => launch.id === id)) return showEditorError("Ya existe un lanzamiento con ese identificador.");
-      const image = String(form.get("image") || "assets/pokemon-clogs.jpg").trim();
-      if (!validAsset(image)) return showEditorError("La imagen debe estar dentro de assets/.");
+      const image = String(form.get("image") || "").trim();
+      if (!validProductImage(image)) return showEditorError("Selecciona una imagen JPG, PNG o WEBP válida.");
       const launch = { id, name: String(form.get("name") || "").trim().slice(0, 90), launchDate: String(form.get("launchDate") || ""), arrivalDate: String(form.get("arrivalDate") || "").trim().slice(0, 60), image, status: String(form.get("status") || "upcoming"), productIds: Array.from(editorForm.querySelectorAll('input[name="productIds"]:checked')).map((input) => input.value).slice(0, 12) };
       if (!launch.name) return showEditorError("Agrega el nombre del lanzamiento.");
       if (existing) state.launches = state.launches.map((entry) => entry.id === existing ? launch : entry); else state.launches.unshift(launch);
@@ -668,28 +693,71 @@
     if (!button) return;
     state.content.videos.splice(Number(button.dataset.removeVideo), 1); persist(); renderVideos();
   });
+  $("#profileForm").addEventListener("submit", (event) => { event.preventDefault(); saveSettings(); });
   $("#shippingForm").addEventListener("submit", (event) => { event.preventDefault(); saveSettings(); });
   $("#paymentForm").addEventListener("submit", (event) => { event.preventDefault(); saveSettings(); });
   $("#saveSettingsButton").addEventListener("click", saveSettings);
+  $("#accountAvatar").addEventListener("click", () => { switchView("settings"); $("#profileForm").elements.displayName.focus(); });
+  $("#profileAvatarInput").addEventListener("change", async (event) => {
+    const input = event.currentTarget;
+    const file = input.files && input.files[0];
+    const status = $("#profileAvatarStatus");
+    if (!file) return;
+    input.disabled = true;
+    status.textContent = "Optimizando imagen…";
+    try {
+      const dataUrl = await compressDeviceImage(file);
+      if (!isDeviceImage(dataUrl)) throw new Error("No se pudo preparar la imagen.");
+      const previous = state.profile.avatar;
+      state.profile.avatar = dataUrl;
+      if (!persist()) {
+        state.profile.avatar = previous;
+        status.textContent = "No se pudo guardar la imagen en este navegador.";
+      } else {
+        renderProfile();
+        status.textContent = "Imagen actualizada.";
+      }
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "No se pudo cargar esa imagen.";
+    } finally {
+      input.disabled = false;
+      input.value = "";
+    }
+  });
+  $("#clearProfileAvatar").addEventListener("click", () => {
+    state.profile.avatar = "";
+    $("#profileAvatarStatus").textContent = state.profile.displayName ? "Imagen quitada." : "";
+    persist();
+    renderProfile();
+  });
   function saveSettings() {
-    const shipping = $("#shippingForm"); const payments = $("#paymentForm");
+    const shipping = $("#shippingForm"); const payments = $("#paymentForm"); const profileForm = $("#profileForm");
+    const displayName = String(profileForm.elements.displayName.value || "").replace(/\s+/g, " ").trim().slice(0, 60);
+    if (displayName.length < 2) {
+      window.alert("Escribe un nombre de al menos 2 caracteres.");
+      profileForm.elements.displayName.focus();
+      return;
+    }
     if (![payments.elements.cash.checked, payments.elements.visaInstallments.checked, payments.elements.visalink.checked].some(Boolean)) {
       window.alert("Deja al menos un método de pago disponible.");
       renderSettings();
       return;
     }
+    state.profile.displayName = displayName;
     state.settings = {
       shippingGuatemala: Math.max(0, Number(shipping.elements.shippingGuatemala.value) || 0),
       shippingOther: Math.max(0, Number(shipping.elements.shippingOther.value) || 0),
       payments: { cash: payments.elements.cash.checked, visaInstallments: payments.elements.visaInstallments.checked, visalink: payments.elements.visalink.checked }
     };
-    persist(); announceSaved();
+    if (!persist()) return;
+    renderProfile();
+    announceSaved();
   }
   function announceSaved() {
-    const stateLabel = $(".local-state");
-    stateLabel.innerHTML = "<i></i> Guardado en este navegador";
-    stateLabel.setAttribute("aria-live", "polite");
-    setTimeout(() => { if (stateLabel.isConnected) stateLabel.textContent = "Guardado en este navegador"; }, 2200);
+    const welcome = $("#welcomeName");
+    const previous = welcome.textContent;
+    welcome.textContent = "Guardado en este navegador";
+    setTimeout(() => { if (welcome.isConnected) welcome.textContent = previous; }, 2200);
   }
   $$('input[name="shippingGuatemala"], input[name="shippingOther"], input[name="cash"], input[name="visaInstallments"], input[name="visalink"]').forEach((input) => input.addEventListener("change", saveSettings));
   $$('[data-video-index]').forEach((input) => input.addEventListener("change", saveContent));

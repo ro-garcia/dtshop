@@ -8,11 +8,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="admin.css">
-   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="accounting.css">
+  <link rel="stylesheet" href="cash.css">
+  <script src="supabase-config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.js" defer></script>
+  <script src="catalog-api.js" defer></script>
   <script src="admin.js" defer></script>
+  <script src="admin-auth.js" defer></script>
+  <script src="accounting-data.js" defer></script>
+  <script src="cash-data.js" defer></script>
+  <script src="cash.js" defer></script>
+  <script src="accounting.js" defer></script>
 </head>
-<body class="admin-body">
+<body class="admin-body" id="inicio">
   <main class="login-screen" id="loginScreen">
     <a class="login-brand" href="index.html" aria-label="Dirtytask, volver a la tienda">
       <img src="assets/dirtytask-flame-d-transparent.png" alt="">
@@ -23,14 +33,14 @@
       <h1 id="loginTitle">Control de<br><em>la tienda.</em></h1>
       <p class="login-copy">Administra catálogo, lanzamientos y contenido desde un solo lugar.</p>
       <form id="loginForm">
-        <label for="loginEmail">Correo de demostración</label>
-        <input id="loginEmail" name="email" type="email" autocomplete="off" placeholder="demo@dirtytask.local" required>
-        <label for="loginPassword">Clave de demostración</label>
-        <input id="loginPassword" name="password" type="password" autocomplete="off" placeholder="Cualquier clave de prueba" required>
+        <label for="loginEmail">Correo electrónico</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="tu@correo.com" required>
+        <label for="loginPassword">Contraseña</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
         <button class="admin-button admin-button-dark login-submit" type="submit">Entrar al panel</button>
         <p class="login-error" id="loginError" role="alert" hidden></p>
       </form>
-      <div class="demo-notice" id="demoNotice"><strong>Vista de demostración local.</strong> El sitio actual no tiene un servidor de autenticación. Aquí no se valida ni se guarda tu contraseña; no uses credenciales reales.</div>
+      <div class="demo-notice" id="demoNotice"><strong>Acceso de socios.</strong> Entra con tu cuenta de Supabase. Los productos, ventas y contabilidad todavía son datos de demostración.</div>
       <a class="login-return" href="index.html">Volver a Dirtytask Store</a>
     </section>
     <p class="login-foot">DIRTYTASK CLOTHING STORE <span>·</span> GUATEMALA / 502</p>
@@ -54,7 +64,7 @@
         <button class="admin-nav-item" type="button" data-view="settings"><span class="nav-icon">⚙</span>Configuración</button>
       </nav>
       <div class="sidebar-bottom">
-       <!----> <span class="demo-pill"><i></i>Servicios Activos</span>
+       <!----> <span class="demo-pill"><i></i>Datos de demostración</span>
         <button class="sidebar-logout" id="logoutButton" type="button">Cerrar sesión</button>
         <a href="index.html">Volver a la tienda</a>
       </div>
@@ -63,8 +73,9 @@
     <main class="admin-main">
       <header class="admin-topbar">
         <div><p class="topbar-overline"></p><h2 id="viewTitle">Resumen</h2></div>
-        <div class="topbar-actions"><span class="local-state"><i></i> Bienvenido: </span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" type="button" aria-label="Cuenta de demostración">DT</button></div>
+        <div class="topbar-actions"><span class="local-state"><i></i> <span id="welcomeName">Bienvenido</span></span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" id="accountAvatar" type="button" aria-label="Editar usuario">DT</button></div>
       </header>
+      <p class="auth-data-notice">Sesión real de Supabase · Catálogo, ventas y contabilidad en demostración; todavía no se sincronizan.</p>
 
       <section class="admin-view" id="view-overview">
         <div class="welcome-row"><div><p class="admin-kicker">LUNES <span id="todayDate"></span> · GTQ</p><h1>BIENVENIDO DE NUEVO ,<br><em>A SEGUIR ROMPIENDOLA!</em></h1><p>Panel administrativo para la gestión de la tienda.</p></div><a class="admin-button admin-button-dark" href="index.html" target="_blank" rel="noopener">ver la tienda</a></div>
@@ -132,8 +143,21 @@
       </section>
 
       <section class="admin-view" id="view-settings" hidden>
-        <div class="view-intro"><div><p class="admin-kicker">OPERACIÓN / PREFERENCIAS</p><h1>Configuración<span>.</span></h1><p>Envíos, métodos de pago y opciones de publicación.</p></div><button class="admin-button admin-button-dark" id="saveSettingsButton" type="button">Guardar cambios</button></div>
+        <div class="view-intro"><div><p class="admin-kicker">OPERACIÓN / PREFERENCIAS</p><h1>Configuración<span>.</span></h1><p>Usuario de la tienda, envíos y métodos de pago.</p></div><button class="admin-button admin-button-dark" id="saveSettingsButton" type="button">Guardar cambios</button></div>
         <div class="settings-grid">
+          <form class="admin-panel profile-panel" id="profileForm">
+            <div class="panel-heading"><div><p class="admin-kicker">CUENTA / USUARIO</p><h3>Editar usuario</h3></div></div>
+            <div class="profile-layout">
+              <div class="profile-photo">
+                <div class="profile-avatar-preview" id="profileAvatarPreview" aria-hidden="true">DT</div>
+                <label class="profile-file">Cambiar imagen<input id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp"></label>
+                <button class="text-button" id="clearProfileAvatar" type="button">Quitar imagen</button>
+                <p class="field-hint" id="profileAvatarStatus" role="status" aria-live="polite"></p>
+              </div>
+              <label class="profile-name">Nombre<input name="displayName" type="text" maxlength="60" autocomplete="name" required></label>
+            </div>
+            <p class="field-hint">Este nombre y esta imagen identifican la sesión del panel en este navegador.</p>
+          </form>
           <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="1" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="1" required></span></label><p class="field-hint">Se aplican al total del checkout cuando se elige el departamento.</p></form>
           <form class="admin-panel settings-form" id="paymentForm"><div class="panel-heading"><div><p class="admin-kicker">CHECKOUT / PAGO</p><h3>Métodos disponibles</h3></div></div><label class="toggle-row"><span><strong>Efectivo</strong><small>Pago contra entrega</small></span><input name="cash" type="checkbox"></label><label class="toggle-row"><span><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span><input name="visaInstallments" type="checkbox"></label><label class="toggle-row"><span><strong>Tarjeta de crédito</strong><small>Visalink</small></span><input name="visalink" type="checkbox"></label><p class="field-hint">Esta maqueta solo permite seleccionar un método; no procesa pagos.</p></form>
           <div class="admin-panel settings-meta"><div class="panel-heading"><div><p class="admin-kicker">TIENDA / IDENTIDAD</p><h3>Dirtytask Clothing Store</h3></div></div><p>Guatemala <span>GT / 502</span></p><p>Moneda <span>GTQ</span></p><p>Checkout <span class="status-pill status-warning">DEMO</span></p></div>
@@ -141,11 +165,16 @@
       </section>
 
     <section class="admin-view" id="view-accounting" hidden>
-      <div class="view-intro"><div><p class="admin-kicker">CERRAR SESIÓN</p><h1>Salir del panel<span>.</span></h1><p>Se cerrará la sesión de administración y volverás a la tienda.</p></div><button class="admin-button admin-button-dark" id="logoutConfirmButton" type="button">Cerrar sesión</button></div>
-      <div class="accounting-grid">
-        <div class="admin-panel accounting-panel"><div class="panel-heading"><div><p class="admin-kicker">CONTABILIDAD / 01</p><h3>Resumen de ventas</h3></div></div><p>Esta maqueta no procesa pagos ni genera facturas. Aquí se mostraría un resumen de ventas y contabilidad.</p></div>
-        <div class="admin-panel accounting-panel"><div class="panel-heading"><div><p class="admin-kicker">FACTURACIÓN / 02</p><h3>Documentos fiscales</h3></div></div><p>En un sitio real, aquí se podrían descargar facturas y reportes de ventas.</p></div>
-      </div>
+      <nav class="cash-nav" id="financeNav" aria-label="Secciones de contabilidad">
+        <button type="button" data-cash-tab="summary" aria-current="page">Resumen</button>
+        <button type="button" data-cash-tab="accounts">Cuentas y caja</button>
+        <button type="button" data-cash-tab="sales">Ventas y cobros</button>
+        <button type="button" data-cash-tab="courier">Mensajería</button>
+        <button type="button" data-cash-tab="entries">Ingresos y gastos</button>
+        <button type="button" data-cash-tab="debt">Obligaciones</button>
+      </nav>
+      <div id="cashRoot"><p>Cargando movimientos…</p></div>
+      <div id="accountingRoot" hidden aria-live="polite"><p>Cargando contabilidad…</p></div>
     </section>
 
 
@@ -170,7 +199,6 @@
         </div>
         
         </div>
-      </div>
 
       <a class="footer-wordmark" href="#inicio" aria-label="Dirtytask, volver al inicio">
         <img src="assets/dirtytask-flame-d-transparent.png" alt="">
