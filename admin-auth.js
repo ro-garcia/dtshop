@@ -15,7 +15,7 @@
   }
   function configError() {
     const config = window.DIRTYTASK_SUPABASE;
-    if (!config?.url || !config?.publishableKey) return 'Completa la URL y la clave pública en supabase-config.js.';
+    if (!config?.url || !config?.publishableKey) return 'La conexión de la tienda no está configurada. Contacta al administrador.';
     try {
       const url = new URL(config.url);
       if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash || url.username || url.password) throw Error();
@@ -23,8 +23,8 @@
         const payload = JSON.parse(atob(config.publishableKey.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
         if (payload.role !== 'anon') throw Error();
       }
-    } catch { return 'Revisa la URL HTTPS y utiliza únicamente una clave pública publishable o anon.'; }
-    if (!window.supabase?.createClient) return 'No se pudo cargar Supabase. Comprueba tu conexión y recarga la página.';
+    } catch { return 'La conexión de la tienda no está disponible. Contacta al administrador.'; }
+    if (!window.supabase?.createClient) return 'No se pudo cargar la tienda. Comprueba tu conexión y recarga la página.';
     return '';
   }
   async function verify() {
@@ -39,13 +39,13 @@
       const { data: profile, error: profileError } = await client.schema('dtshop').from('app_user')
         .select('id,display_name,role,is_active').eq('id', data.user.id).single();
       if (profileError) throw Error('profile');
-      if (!profile?.is_active || !['partner_ops', 'partner_finance'].includes(profile.role)) {
-        if (ticket === revision) { publish(null); message('Esta cuenta no tiene acceso de socio activo. Revisa su rol en Supabase.'); }
+      if (!profile?.is_active || !['partner_ops','partner_finance','admin'].includes(profile.role)) {
+        if (ticket === revision) { publish(null); message('Esta cuenta no tiene acceso autorizado al panel.'); }
         return;
       }
       if (ticket === revision) { message(''); publish({ ...profile, email: data.user.email }); }
     } catch {
-      if (ticket === revision) { publish(null); message('No se pudo verificar el acceso. Revisa la conexión, la sesión y el esquema dtshop en Supabase.'); }
+      if (ticket === revision) { publish(null); message('No se pudo verificar el acceso. Comprueba tu conexión y vuelve a iniciar sesión.'); }
     } finally { if (ticket === revision) busy(false); }
   }
   async function logout() {
@@ -82,14 +82,14 @@
       if (error) {
         message(error.code === 'invalid_credentials' ? 'Correo o contraseña incorrectos.' : 'No se pudo iniciar sesión. Verifica tu conexión y que el correo esté confirmado.');
       } else { await verify(); }
-    } catch { message('No se pudo conectar con Supabase. Comprueba tu conexión e inténtalo de nuevo.'); }
+    } catch { message('No se pudo conectar con la tienda. Comprueba tu conexión e inténtalo de nuevo.'); }
     finally { passwordInput.value = ''; signingIn = false; busy(false); }
   });
   document.querySelector('#logoutButton').addEventListener('click', logout);
   document.querySelector('#mobileLogout').addEventListener('click', logout);
   client.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT' || !session) { ++revision; publish(null); if (!signingIn && !signingOut) busy(false); }
-    // Avoid awaiting Supabase calls while its auth callback holds the session lock.
+    // Avoid awaiting la tienda calls while its auth callback holds the session lock.
     else if (!signingIn && !signingOut && event !== 'INITIAL_SESSION') setTimeout(verify, 0);
   });
   window.addEventListener('focus', () => { if (!signingIn && !signingOut) verify(); });

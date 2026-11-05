@@ -16,7 +16,7 @@
   };
   const emptyContent = () => ({heroCopy: '', feedCopy: '', instagramUrl: '', tiktokUrl: '', videos: []});
   const emptySettings = () => ({shippingGuatemala: 0, shippingOther: 0, payments: {cash: false, visaInstallments: false, visalink: false}});
-  // Authentication is managed by admin-auth.js; access is verified against Supabase.
+  // Authentication is managed by admin-auth.js; access is verified against la tienda.
   let categoryLabels = Object.create(null);
   let categoriesReady = false;
   let categoriesMessage = 'Las categorías se cargarán al iniciar sesión.';
@@ -113,7 +113,7 @@
     });
     for (const area of ['content', 'settings']) {
       const panel = storePanels[area];
-      $$(storeControls[area]).forEach(control => { control.disabled = window.adminIdentity?.role !== 'partner_ops' || !panel.ready || panel.busy; });
+      $$(storeControls[area]).forEach(control => { control.disabled = !['partner_ops','admin'].includes(window.adminIdentity?.role) || !panel.ready || panel.busy; });
       $(area === 'content' ? '#refreshContent' : '#refreshSettings').disabled = !window.adminIdentity || panel.busy;
     }
     if(state.content.bannerSupported===false){$('#heroBannerInput').disabled=true;$('#resetHeroBanner').disabled=true;}
@@ -191,7 +191,7 @@ async function loadRemoteCatalog() {
   const ticket = ++catalogRequest;
   catalogReady = false;
   $('#refreshCatalog').disabled = true;
-  $('#catalogLoadStatus').textContent = 'Cargando catálogo de Supabase…';
+  $('#catalogLoadStatus').textContent = 'Cargando catálogo…';
   $('#catalogLoadStatus').dataset.state='quiet';
   applyRoleControls();
   try {
@@ -202,7 +202,7 @@ async function loadRemoteCatalog() {
     state.products = nextProducts; state.launches = nextLaunches;
     catalogReady = true;
     renderProducts(); renderDrops(); renderOverview(); renderStatistics();
-    $('#catalogLoadStatus').textContent = `Supabase: ${products.length} productos y ${launches.length} lanzamientos.`;
+    $('#catalogLoadStatus').textContent = `Catálogo: ${products.length} productos y ${launches.length} lanzamientos.`;
     document.dispatchEvent(new CustomEvent('dirtytask:admin-data-updated'));
     return true;
   } catch (error) {
@@ -222,14 +222,14 @@ async function loadRemoteCatalog() {
   async function loadCategories() {
     const ticket = ++categoriesRequest;
     categoriesReady = false;
-    categoriesMessage = 'Cargando categorías de Supabase…';
+    categoriesMessage = 'Cargando categorías…';
     updateCategoryField();
     try {
       const rows = await window.catalogApi.listCategories();
       if (ticket !== categoriesRequest) return;
       categoryLabels = Object.fromEntries(rows.map(row => [row.code, row.label]));
       categoriesReady = rows.length > 0;
-      categoriesMessage = rows.length ? 'Categorías sincronizadas con Supabase.' : 'No hay categorías. Agrega registros en dtshop.category y reintenta.';
+      categoriesMessage = rows.length ? 'Categorías actualizadas.' : 'No hay categorías disponibles.';
       renderProducts(); renderStatistics(); renderOverview();
       applyRoleControls();
     } catch (_) {
@@ -385,7 +385,7 @@ async function loadRemoteCatalog() {
     const accountAvatar = $("#accountAvatar");
     accountAvatar.innerHTML = avatar ? '<img alt="" src="' + escapeHtml(avatar) + '">' : escapeHtml(initials);
     accountAvatar.setAttribute("aria-label", "Editar usuario, " + name);
-    $("#welcomeName").textContent = "Bienvenido: " + name + (window.adminIdentity?.role === "partner_finance" ? " · Finanzas" : window.adminIdentity ? " · Operaciones" : "");
+    $("#welcomeName").textContent = "Bienvenido: " + name + (window.adminIdentity?.role === "partner_finance" ? " · Finanzas" : window.adminIdentity?.role === "admin" ? " · Administrador" : window.adminIdentity ? " · Operaciones" : "");
   }
   function renderSettings() {
     const shipping = $("#shippingForm");
@@ -586,7 +586,7 @@ async function loadRemoteCatalog() {
     updateModelPickerSelection();
   });
   function openEditor(type, item = null) {
-    if (!catalogReady || catalogBusy || window.adminIdentity?.role !== 'partner_ops') return;
+    if (!catalogReady || catalogBusy || !['partner_ops','admin'].includes(window.adminIdentity?.role)) return;
     currentEditor = { type, id: item?.id || null };
     $("#editorMessage").hidden = true;
     $("#editorKicker").textContent = type === "product" ? "CATÁLOGO / EDICIÓN" : "CALENDARIO / EDICIÓN";
@@ -639,20 +639,20 @@ async function loadRemoteCatalog() {
   $("#cancelEditor").addEventListener("click", closeEditor);
   editorDialog.addEventListener("click", (event) => { if (event.target === editorDialog) closeEditor(); });
   $("#deleteEntryButton").addEventListener("click", async () => {
-    if (!currentEditor?.id || !catalogReady || catalogBusy || window.adminIdentity?.role !== 'partner_ops') return;
+    if (!currentEditor?.id || !catalogReady || catalogBusy || !['partner_ops','admin'].includes(window.adminIdentity?.role)) return;
     const { type, id } = currentEditor;
     await saveRemoteEntry(() => type === 'product' ? window.catalogApi.archiveProduct(id) : window.catalogApi.closeLaunch(id));
   });
   editorForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!currentEditor || !catalogReady || catalogBusy || window.adminIdentity?.role !== 'partner_ops') return;
+    if (!currentEditor || !catalogReady || catalogBusy || !['partner_ops','admin'].includes(window.adminIdentity?.role)) return;
     if (editorForm.querySelector("[data-device-image]:disabled")) return showEditorError("Espera a que termine de procesarse la imagen.");
     const form = new FormData(editorForm);
     const id = String(form.get("id") || "").trim();
     const existing = currentEditor.id;
     if (!/^[a-z0-9-]{2,50}$/.test(id)) return showEditorError("Usa un identificador simple: letras minúsculas, números y guiones.");
     if (currentEditor.type === "product") {
-      if (!categoriesReady || !Object.hasOwn(categoryLabels, String(form.get("category") || ""))) return showEditorError("Selecciona una categoría válida de Supabase.");
+      if (!categoriesReady || !Object.hasOwn(categoryLabels, String(form.get("category") || ""))) return showEditorError("Selecciona una categoría válida.");
       const image = String(form.get("image") || "").trim();
       const lookImage = String(form.get("lookImage") || "").trim();
       if (!validProductImage(image) || (lookImage && !validProductImage(lookImage))) return showEditorError("Selecciona una imagen JPG, PNG o WEBP válida.");
@@ -694,9 +694,9 @@ async function loadRemoteCatalog() {
       // Close after server confirmation. A failed refresh must not invite duplicate creates.
       editorDialog.close(); currentEditor = null;
       const loaded = await loadRemoteCatalog();
-      if (!loaded && window.adminIdentity?.id === userId) $('#catalogLoadStatus').textContent = 'Cambios guardados en Supabase. No se pudo recargar; pulsa Actualizar catálogo.';
+      if (!loaded && window.adminIdentity?.id === userId) $('#catalogLoadStatus').textContent = 'Cambios guardados en la tienda. No se pudo recargar; pulsa Actualizar catálogo.';
     } catch (error) {
-      if (window.adminIdentity?.id === userId && revision === catalogRequest) showEditorError(error.message || 'No se pudo guardar en Supabase. Reintenta.');
+      if (window.adminIdentity?.id === userId && revision === catalogRequest) showEditorError(error.message || 'No se pudo guardar en la tienda. Reintenta.');
     } finally {
       catalogBusy = false;
       controls.forEach(control => { control.disabled = false; });
@@ -707,17 +707,17 @@ async function loadRemoteCatalog() {
   function showEditorError(message) { $("#editorMessage").textContent = message; $("#editorMessage").hidden = false; }
 
   function contentFromDatabase(data) {
-    if (!data?.block?.updated_at || !Array.isArray(data.videos)) throw new Error('Contenido incompleto en Supabase.');
+    if (!data?.block?.updated_at || !Array.isArray(data.videos)) throw new Error('Contenido incompleto en la tienda.');
     return {heroCopy: data.block.hero_copy, feedCopy: data.block.feed_copy,
       heroImageKey: data.block.hero_image_key, bannerSupported:data.bannerSupported!==false,
       instagramUrl: data.block.instagram_url, tiktokUrl: data.block.tiktok_url,
       videos: data.videos.map(video => video.url), updatedAt: data.block.updated_at};
   }
   function settingsFromDatabase(data) {
-    if (!data?.settings?.updated_at || !Array.isArray(data.payments)) throw new Error('Configuración incompleta en Supabase.');
+    if (!data?.settings?.updated_at || !Array.isArray(data.payments)) throw new Error('Configuración incompleta en la tienda.');
     const payment = code => {
       const row = data.payments.find(method => method.code === code);
-      if (!row) throw new Error('Falta el método de pago ' + code + ' en Supabase.');
+      if (!row) throw new Error('Falta el método de pago ' + code + ' en la tienda.');
       return row.enabled;
     };
     return {shippingGuatemala: Number(data.settings.shipping_guatemala_cents) / 100,
@@ -728,12 +728,12 @@ async function loadRemoteCatalog() {
   async function storeOperation(area, action, saving = false) {
     const panel = storePanels[area];
     const userId = window.adminIdentity?.id;
-    if (!userId || panel.busy || (saving && (!panel.ready || window.adminIdentity.role !== 'partner_ops'))) return;
+    if (!userId || panel.busy || (saving && (!panel.ready || !['partner_ops','admin'].includes(window.adminIdentity.role)))) return;
     const ticket = ++panel.revision;
     panel.busy = true;
     if (!saving) panel.ready = false;
     const status = $(area === 'content' ? '#contentLoadStatus' : '#settingsLoadStatus');
-    status.textContent = saving ? 'Guardando en Supabase…' : 'Cargando desde Supabase…';
+    status.textContent = saving ? 'Guardando en la tienda…' : 'Cargando datos…';
     status.dataset.state='quiet';
     const saveButton=$(area==='content'?'#saveContentButton':'#saveSettingsButton');
     const saveLabel=area==='content'?'Guardar contenido':'Guardar cambios';
@@ -745,7 +745,7 @@ async function loadRemoteCatalog() {
       state[area] = area === 'content' ? contentFromDatabase(data) : settingsFromDatabase(data);
       panel.ready = true;
       if (area === 'content') renderContent(); else renderSettings();
-      status.textContent = saving ? 'Cambios guardados en Supabase.' : 'Datos cargados desde Supabase.';
+      status.textContent = saving ? 'Cambios guardados en la tienda.' : 'Datos actualizados.';
       if(saving){saveButton.textContent='Guardado';setTimeout(()=>{if(!panel.busy&&saveButton.textContent==='Guardado')saveButton.textContent=saveLabel},2000);}
     } catch (error) {
       if (ticket !== panel.revision || window.adminIdentity?.id !== userId) return;
@@ -761,7 +761,7 @@ async function loadRemoteCatalog() {
   }
   $('#refreshContent').addEventListener('click', () => loadStorePanel('content'));
   $('#refreshSettings').addEventListener('click', () => loadStorePanel('settings'));
-  const canEditStore = area => window.adminIdentity?.role === 'partner_ops' && storePanels[area].ready && !storePanels[area].busy;
+  const canEditStore = area => ['partner_ops','admin'].includes(window.adminIdentity?.role) && storePanels[area].ready && !storePanels[area].busy;
   const videoDraft = () => $$('[data-video-index]').map(input => input.value.trim());
 
   $("#contentForm").addEventListener("submit", (event) => { event.preventDefault(); saveContent(); });
@@ -867,7 +867,7 @@ async function loadRemoteCatalog() {
     renderProfile();
   });
   function saveLocalProfile() {
-    if (window.adminIdentity?.role !== 'partner_ops') return;
+    if (!['partner_ops','admin'].includes(window.adminIdentity?.role)) return;
     const profileForm = $('#profileForm');
     const displayName = String(profileForm.elements.displayName.value || "").replace(/\s+/g, " ").trim().slice(0, 60);
     if (displayName.length < 2) {

@@ -5,7 +5,7 @@
   const root = document.querySelector('#cashRoot'), nav = document.querySelector('#financeNav');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (value, currency = 'GTQ') => new Intl.NumberFormat('es-GT', { style: 'currency', currency }).format(value / 100);
-  const can=kind=>['account','confirm','expense','income','transfer'].includes(kind)?window.adminIdentity?.role==='partner_finance':['sale','import-order'].includes(kind)?window.adminIdentity?.role==='partner_ops':['partner_ops','partner_finance'].includes(window.adminIdentity?.role);
+  const can=kind=>['account','confirm','expense','income','transfer'].includes(kind)?['partner_finance','admin'].includes(window.adminIdentity?.role):['sale','import-order'].includes(kind)?['partner_ops','admin'].includes(window.adminIdentity?.role):['partner_ops','partner_finance','admin'].includes(window.adminIdentity?.role);
   const mutations=['account','sale','collect','adjust','settlement','confirm','expense','income','transfer','reconcile','import-order'];
   const btn = (label, action, id = '', primary = false) => `<button type="button" class="admin-button ${primary ? 'admin-button-dark' : 'admin-button-quiet'}" data-cash-action="${action}" data-id="${esc(id)}"${mutations.includes(action)&&!can(action)?' disabled':''}>${label}</button>`;
   const channel = { web: 'Web', external: 'Externa', physical: 'Física' };
@@ -45,7 +45,7 @@
       const states = await Promise.all(data.sales.map(s => repo.saleStatus(s.id)));
       body = `<div class="cash-toolbar">${btn('＋ Registrar venta', 'sale', '', true)}</div>` + table(['VENTA / CLIENTE', 'CANAL', 'TOTAL', 'POR COBRAR', 'EN MENSAJERÍA', 'ESTADO', ''], data.sales.map((s, i) => `<tr><td>${esc(s.reference)}<small>${esc(s.customer || 'Sin cliente')}</small></td><td>${channel[s.channel]}</td><td>${money(states[i].total, s.currency)}</td><td>${money(states[i].customerDue, s.currency)}</td><td>${money(states[i].courierDue, s.currency)}</td><td>${status(states[i])}</td><td>${btn('Ver venta', 'sale-detail', s.id)}</td></tr>`), 'Registra tu primera venta.');
       const eligible=(await window.Finance.load()).orders;
-      if(eligible.length&&window.adminIdentity?.role==='partner_ops')body+=panel('Pedidos listos para registrar como venta',eligible.map(order=>`<div class="cash-book-heading"><span>#${esc(order.id.slice(0,8))} · ${money(order.total_cents,order.currency)}</span>${btn('Registrar venta del pedido','import-order',order.id)}</div>`).join(''));
+      if(eligible.length&&['partner_ops','admin'].includes(window.adminIdentity?.role))body+=panel('Pedidos listos para registrar como venta',eligible.map(order=>`<div class="cash-book-heading"><span>#${esc(order.id.slice(0,8))} · ${money(order.total_cents,order.currency)}</span>${btn('Registrar venta del pedido','import-order',order.id)}</div>`).join(''));
       const s = data.sales.find(s => s.id === saleId);
       if (s) {
         const st = await repo.saleStatus(s.id);
@@ -73,7 +73,7 @@
   const amountInput = (label, name = 'amount', value = '', optional = false) => input(label, name, 'number', value, `${optional ? '' : 'required'} min="${optional ? 0 : '0.01'}" step="0.01" max="9999999999.99"`);
   const dateInput = () => input('Fecha', 'date', 'date', A.today(), `required min="2000-01-01" max="${A.today()}"`);
   const accountSelect = (label = 'Cuenta / caja', name = 'accountId', currency) => select(label, name, data.accounts.filter(a => !currency || a.currency === currency).map(a => [a.id, `${a.name} · ${a.currency}`]));
-  const fileInput = () => '<label class="acc-wide">Comprobante (opcional)<input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,application/pdf"><small>Imagen o PDF · máximo 5 MB · guardado privado en Supabase</small></label>';
+  const fileInput = () => '<label class="acc-wide">Comprobante (opcional)<input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,application/pdf"><small>Imagen o PDF · máximo 5 MB · archivo privado</small></label>';
   function lineRow() {
     const products = window.adminCatalog.products();
     return `<div class="cash-sale-line">${select('Producto', 'product', [['', 'Artículo externo / manual'], ...products.map(p => [p.id, p.name])])}${input('Nombre', 'lineName', 'text', '', 'required maxlength="150"')}${input('Cantidad', 'qty', 'number', '1', 'required min="1" max="10000" step="1"')}${amountInput('Precio unitario', 'price')}<button type="button" class="text-button" data-remove-line>Quitar</button></div>`;
@@ -151,7 +151,7 @@
         if (kind === 'transfer') result = await repo.transfer(values, file);
         if(kind==='reconcile')result=await repo.prepareReconciliation(values,file);
         if(window.adminIdentity?.id!==userId)return;
-        modal.close(); await render(); syncNav(); const message=root.querySelector('#cashMessage');if(message)message.textContent=result?.pending?'Solicitud enviada. El saldo cambiará después de la revisión del otro socio.':'Venta registrada en Supabase.';
+        modal.close(); await render(); syncNav(); const message=root.querySelector('#cashMessage');if(message)message.textContent=result?.pending?'Solicitud enviada. El saldo cambiará después de la revisión del otro socio.':'Operación registrada.';
       } catch (e) { if(window.adminIdentity?.id!==userId)return;error.textContent = e.message || 'No se pudo guardar.'; error.hidden = false; }
       finally { saving = false; buttons.forEach(b => b.disabled = false); }
     });

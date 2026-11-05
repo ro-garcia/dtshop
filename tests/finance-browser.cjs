@@ -11,10 +11,10 @@ const fs=require('node:fs/promises');const path=require('node:path');const asser
  CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text REFERENCES storage.buckets,name text,UNIQUE(bucket_id,name));
  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;GRANT USAGE ON SCHEMA auth,storage TO anon,authenticated,service_role;
  GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO anon,authenticated;`);
- for(const file of ['supabase.sql','finance-integration.sql'])await db.exec(await fs.readFile(path.join(__dirname,'../sql',file),'utf8'));
- const ops=randomUUID(),finance=randomUUID();
- for(const [id,role] of [[ops,'partner_ops'],[finance,'partner_finance']]){await db.query('INSERT INTO auth.users(id) VALUES($1)',[id]);await db.query('UPDATE dtshop.app_user SET role=$1,display_name=$1 WHERE id=$2',[role,id]);}
- const actors={'ops@example.com':{id:ops,role:'partner_ops'},'finance@example.com':{id:finance,role:'partner_finance'}};
+ for(const file of ['supabase.sql','finance-integration.sql','admin-role-integration.sql'])await db.exec(await fs.readFile(path.join(__dirname,'../sql',file),'utf8'));
+ const ops=randomUUID(),finance=randomUUID(),admin=randomUUID();
+ for(const [id,role] of [[ops,'partner_ops'],[finance,'partner_finance'],[admin,'admin']]){await db.query('INSERT INTO auth.users(id) VALUES($1)',[id]);await db.query('UPDATE dtshop.app_user SET role=$1,display_name=$1 WHERE id=$2',[role,id]);}
+ const actors={'admin@example.com':{id:admin,role:'admin'},'ops@example.com':{id:ops,role:'partner_ops'},'finance@example.com':{id:finance,role:'partner_finance'}};
  let sqlQueue=Promise.resolve();const files=new Map();let delaySnapshot=0;
  function run(actor,fn){const work=sqlQueue.then(async()=>{await db.exec('SET ROLE authenticated');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[actor]);try{return await fn()}finally{await db.exec('RESET ROLE')}});sqlQueue=work.catch(()=>{});return work;}
  const extension=`
@@ -115,6 +115,16 @@ const fs=require('node:fs/promises');const path=require('node:path');const asser
   await page.locator('[data-finance-filter="history"]').click();
   for(const width of [390,1280]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);if(process.env.DT_UI_SCREENSHOTS_DIR)await page.locator('#view-accounting').screenshot({path:path.join(process.env.DT_UI_SCREENSHOTS_DIR,'finance-approvals-'+width+'.png')});}
   if(process.env.DT_UI_SCREENSHOTS_DIR){await fs.mkdir(process.env.DT_UI_SCREENSHOTS_DIR,{recursive:true});await page.locator('#view-accounting').screenshot({path:path.join(process.env.DT_UI_SCREENSHOTS_DIR,'finance-connected.png')});}
+  await changeUser('admin@example.com');
+  assert.match(await page.locator('#welcomeName').textContent(),/Administrador/);
+  assert.equal(await page.locator('#addProductButton').isDisabled(),false);
+  await page.locator('[data-cash-tab="accounts"]').click();await page.locator('[data-cash-action="account"]').click();
+  await page.locator('#cashForm [name="type"]').selectOption('cash');await page.locator('#cashForm [name="name"]').fill('Caja administrador');await page.locator('[name="openingBalance"]').fill('250');
+  await page.locator('#cashForm [type="submit"]').click();await page.locator('.cash-dialog').waitFor({state:'hidden'});
+  assert.equal(await count('money_account'),2,'Admin account posts immediately');
+  const adminRequest=(await db.query('SELECT status,applied_directly,reviewed_by FROM dtshop.operation_request WHERE requested_by=$1',[admin])).rows[0];assert.equal(adminRequest.status,'approved');assert.equal(adminRequest.applied_directly,true);assert.equal(adminRequest.reviewed_by,admin);
+  await page.locator('[data-cash-tab="approvals"]').click();await page.locator('[data-finance-filter="mine"]').click();assert.match(await page.locator('#financeApprovals').textContent(),/Aplicado directamente por administrador/);
+  assert.doesNotMatch(await page.locator('#adminApp').innerText(),/Supabase/);
   delaySnapshot=200;await page.locator('#refreshFinance').click();await page.locator('#logoutButton').click();await page.waitForTimeout(300);
   assert.equal(await page.locator('#financeApprovals').textContent(),'');assert.equal(await page.locator('#accountingRoot').textContent(),'');assert.equal(await page.locator('#cashRoot').textContent(),'');assert.equal(await page.locator('.acc-dialog [name="reference"]').count(),0);
   assert.deepEqual(errors,[]);

@@ -3,7 +3,7 @@ window.catalogApi = (() => {
   const productColumns = 'id,name,price_cents,description,category_code,variant_label,stock,status,published,preorder,updated_at,product_variant(id,label,sort_order),product_media(id,kind,storage_key)';
   const launchColumns = 'id,name,launch_on,arrival_label,image_key,status,updated_at,launch_product(product_id,sort_order)';
   function client() {
-    if (!window.dirtytaskSupabase) throw new Error('Supabase no está configurado.');
+    if (!window.dirtytaskSupabase) throw new Error('La conexión de la tienda no está configurada.');
     return window.dirtytaskSupabase;
   }
   async function readPages(table, columns, order) {
@@ -21,7 +21,7 @@ window.catalogApi = (() => {
   async function rpc(name, args) {
     const { data, error } = await client().schema('dtshop').rpc(name, args);
     if (error) {
-      if (error.code === 'PGRST202') throw new Error('Falta instalar sql/catalog-integration.sql en Supabase.');
+      if (error.code === 'PGRST202') throw new Error('Esta función no está disponible. Contacta al administrador.');
       throw error;
     }
     return data;
@@ -34,7 +34,7 @@ window.catalogApi = (() => {
     const prefix = publicImageUrl('catalog-placeholder').replace(/catalog-placeholder$/, '');
     if (value.startsWith(prefix)) return decodeURIComponent(value.slice(prefix.length));
     if (!/^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/.test(value) && !/^assets\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(value)) {
-      throw new Error('Selecciona una imagen válida para subir a Supabase.');
+      throw new Error('Selecciona una imagen válida para subir a la tienda.');
     }
     const response = await fetch(value);
     if (!response.ok) throw new Error('No se pudo leer la imagen.');

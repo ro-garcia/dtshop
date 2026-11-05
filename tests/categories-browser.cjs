@@ -15,7 +15,7 @@ const fs=require('node:fs/promises');const path=require('node:path');const asser
  await page.goto('https://categories.example/admin.html');
  await page.locator('#loginEmail').fill('ops@example.com');await page.locator('#loginPassword').fill('test');await page.locator('.login-submit').click();
  await page.locator('#adminApp').waitFor({state:'visible'});
- await page.waitForFunction(()=>document.querySelector('#catalogLoadStatus').textContent.includes('Supabase:'));
+ await page.waitForFunction(()=>document.querySelector('#catalogLoadStatus').textContent.includes('Catálogo:'));
  await page.locator('[data-view="products"]').click();await page.locator('#addProductButton').click();
  const select=page.locator('[name="category"]');
  assert.match(await select.textContent(),/Camisetas desde Supabase/);

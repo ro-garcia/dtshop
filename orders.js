@@ -18,7 +18,7 @@
     const query=$('#ordersSearch').value.trim().toLocaleLowerCase('es');
     const visible=rows.filter(row=>(filter==='all'||row.status===filter)&&(!query||[row.id,row.customer?.first_name,row.customer?.last_name,row.phone].join(' ').toLocaleLowerCase('es').includes(query)));
     $('#ordersResultCount').textContent=visible.length+' '+(visible.length===1?'pedido':'pedidos');
-    const canEdit=ready&&!busy&&window.adminIdentity?.role==='partner_ops';
+    const canEdit=ready&&!busy&&['partner_ops','admin'].includes(window.adminIdentity?.role);
     $('#ordersList').innerHTML=visible.map(row=>orderMarkup(row,canEdit)).join('')||'<div class="empty-admin orders-empty"><h2>'+(!ready&&!rows.length?'Cargando pedidos…':query?'No encontramos ese pedido.':'No hay pedidos en este estado.')+'</h2><p>'+(query?'Prueba con otro nombre, teléfono o referencia.':'Las compras recibidas aparecerán aquí.')+'</p></div>';
     $('#refreshOrders').disabled=!window.adminIdentity||busy;
     document.dispatchEvent(new CustomEvent('dirtytask:orders-updated'));
@@ -29,7 +29,7 @@
     try{
       const next=await window.ordersApi.list();
       if(ticket!==revision||window.adminIdentity?.id!==userId)return;
-      rows=next;ready=true;$('#ordersLoadStatus').textContent='Pedidos cargados desde Supabase: '+rows.length+'.';
+      rows=next;ready=true;$('#ordersLoadStatus').textContent='Pedidos cargados: '+rows.length+'.';
     }catch(error){if(ticket===revision&&window.adminIdentity?.id===userId){$('#ordersLoadStatus').dataset.state='error';$('#ordersLoadStatus').textContent='No se pudieron actualizar. Lo visible puede ser anterior. '+(error.message||'Reintenta.');}}
     finally{if(ticket===revision){busy=false;render();}}
   }
@@ -41,7 +41,7 @@
   $('#ordersList').addEventListener('click',async event=>{
     if(event.target.closest('[data-abort-cancel]')){cancelling=null;render();return;}
     const button=event.target.closest('[data-order-id]');
-    if(!button||!ready||busy||window.adminIdentity?.role!=='partner_ops')return;
+    if(!button||!ready||busy||!['partner_ops','admin'].includes(window.adminIdentity?.role))return;
     const row=rows.find(row=>row.id===button.dataset.orderId);if(!row)return;
     const next=button.dataset.nextStatus;if(!(transitions[row.status]||[]).includes(next))return;
     if(next==='cancelled'&&!button.hasAttribute('data-confirm-cancel')){cancelling=row.id;render();return;}

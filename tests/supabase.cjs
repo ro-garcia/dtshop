@@ -272,5 +272,27 @@ const {randomUUID} = require('node:crypto');
  assert.equal(await rpc(ops,'finance_register_attachment',[ops+'/receipt.pdf','receipt.pdf','application/pdf',123]),attachment);
  console.log('PASS financial snapshot, historical server balances/reports, role enforcement, approval posting, sale/reconciliation/attachment idempotency');
  }
+ {
+ const migration=fs.readFileSync(path.join(__dirname,'../sql/admin-role-integration.sql'),'utf8');await db.exec(migration);await db.exec(migration);
+ const admin=randomUUID();await db.query('INSERT INTO auth.users(id) VALUES($1)',[admin]);await db.query("UPDATE dtshop.app_user SET role='admin' WHERE id=$1",[admin]);
+ const today=await rpc(admin,'business_today',[]),key=randomUUID();
+ const opening={name:'Admin caja',account_type:'cash',bank_name:'',reference_last4:'',currency:'GTQ',opening_balance_cents:100000,opened_on:today};
+ const rid=await rpc(admin,'submit_operation',['account_open',opening,key]);const snap=await rpc(admin,'finance_snapshot',[]);const r=snap.requests.find(r=>r.id===rid);
+ assert.equal(r.status,'approved');assert.equal(r.requested_by,admin);assert.equal(r.reviewed_by,admin);assert.equal(r.applied_directly,true);
+ const adminAccount=r.result_id;assert.equal(Number(await rpc(admin,'account_balance',[adminAccount])),100000);
+ assert.equal(await rpc(admin,'submit_operation',['account_open',opening,key]),rid);
+ await rejected(()=>rpc(admin,'submit_operation',['account_open',{...opening,name:'Changed'},key]));
+ const income={account_id:adminAccount,business_date:today,amount_cents:500,category:'contribution',concept:'Aporte admin'};
+ const incomeKey=randomUUID();await rpc(admin,'submit_operation',['income',income,incomeKey]);await rpc(admin,'submit_operation',['income',income,incomeKey]);assert.equal(Number(await rpc(admin,'account_balance',[adminAccount])),100500);
+ await rejected(()=>rpc(admin,'submit_operation',['expense',{...income,amount_cents:99999999,category:'advertising'},randomUUID()]));
+ const partnerReq=await rpc(finance,'submit_operation',['income',income,randomUUID()]);assert.equal(Number(await rpc(admin,'account_balance',[adminAccount])),100500);await rejected(()=>rpc(finance,'review_operation',[partnerReq,true,'']));await rpc(admin,'review_operation',[partnerReq,true,'Verificado por admin']);
+ const recon=await rpc(admin,'finance_prepare_reconciliation',[randomUUID(),{account_id:adminAccount,as_of_date:today,observed_balance_cents:101000,notes:'Cierre admin'}]);const checked=(await rpc(admin,'finance_snapshot',[])).reconciliations.find(r=>r.id===recon);assert.equal(checked.reviewed_by,admin);assert.equal(checked.applied_directly,true);
+ await rejected(()=>rpc(admin,'submit_operation',['income',income,randomUUID()]));
+ await as(admin,()=>db.query("UPDATE dtshop.category SET label=label WHERE code='tshirts'"));
+ await rejected(()=>as(customer,()=>db.query("UPDATE dtshop.app_user SET role='admin' WHERE id=$1",[customer])));
+ await rejected(()=>rpc(customer,'submit_operation',['income',income,randomUUID()]));
+ await db.query('UPDATE dtshop.app_user SET is_active=false WHERE id=$1',[admin]);await rejected(()=>rpc(admin,'finance_snapshot',[]));
+ console.log('PASS admin role: direct posting, audit, idempotency, rollback, partner approval unchanged, own close, RLS, inactive/unauthorized rejection');
+ }
  await db.close();
 })().catch(e=>{console.error(e);process.exitCode=1;});

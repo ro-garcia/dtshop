@@ -2,7 +2,7 @@
 window.Finance = (() => {
   const A=window.Accounting;
   let cache=null,inflight=null,generation=0,dataVersion=0,fileCache=new WeakMap();
-  const staff=()=>['partner_ops','partner_finance'].includes(window.adminIdentity?.role);
+  const staff=()=>['partner_ops','partner_finance','admin'].includes(window.adminIdentity?.role);
   const context=()=>({generation,id:window.adminIdentity?.id});
   function check(ctx){if(!staff()||!ctx.id||ctx.id!==window.adminIdentity?.id||ctx.generation!==generation)throw Error('La sesión cambió. Vuelve a consultar Contabilidad.');}
   function client(){if(!staff()||!window.dirtytaskSupabase)throw Error('Inicia sesión con una cuenta de socio.');return window.dirtytaskSupabase;}
@@ -10,7 +10,7 @@ window.Finance = (() => {
   async function rpc(name,args={}){
     const ctx=context();check(ctx);
     const {data,error}=await client().schema('dtshop').rpc(name,args);check(ctx);
-    if(error?.code==='PGRST202')throw Error('Falta ejecutar sql/finance-integration.sql en Supabase.');
+    if(error?.code==='PGRST202')throw Error('Esta función no está disponible. Contacta al administrador.');
     if(error)throw error;return data;
   }
   async function load(force=false){
@@ -40,7 +40,7 @@ window.Finance = (() => {
     return {cash,debt,requests:raw.requests,reconciliations:raw.reconciliations||[],people:raw.people||[],orders:raw.orders||[],attachments:meta,readAt:raw.read_at};
   }
   function entry(row,attachment){return {id:row.id,accountId:row.account_id,date:row.business_date,direction:row.direction,amount:number(row.amount_cents),currency:row.currency,category:row.category,concept:row.concept,saleId:row.sale_id,sourceType:row.source_type==='obligation_movement'?'obligation':row.source_type,sourceId:row.source_id,sequence:number(row.sequence),attachment:attachment(row.attachment_id),reversalOf:row.reversal_of,createdAt:row.created_at,...(row.balance_cents!=null?{balance:number(row.balance_cents)}:{})};}
-  function role(allowed){if(!allowed.includes(window.adminIdentity?.role))throw Error('Esta operación corresponde al otro socio.');}
+  function role(allowed){if(window.adminIdentity?.role!=='admin'&&!allowed.includes(window.adminIdentity?.role))throw Error('Esta operación corresponde al otro socio.');}
   function key(input){if(!input.requestKey)throw Error('Abre de nuevo el formulario para iniciar la solicitud.');return input.requestKey;}
   async function attachment(file){
     if(!file)return null;
@@ -60,7 +60,7 @@ window.Finance = (() => {
     const ctx=context();const attachmentId=await attachment(file);check(ctx);
     if(attachmentId)payload.attachment_id=attachmentId;
     const id=await rpc('submit_operation',{p_operation:operation,p_payload:payload,p_idempotency_key:key(input)});
-    await changed();return {id,pending:true,obligationId:input.obligationId};
+    const direct=window.adminIdentity?.role==='admin';await changed();const applied=direct?(await load()).requests.find(r=>r.id===id)?.result_id:null;return {id:applied||id,pending:!direct,obligationId:input.obligationId};
   }
   async function getAttachment(id){
     const ctx=context(),snapshot=await load(),meta=snapshot.attachments.get(id);if(!meta)throw Error('No se encontró el comprobante.');
@@ -81,7 +81,7 @@ window.Finance = (() => {
     async confirmSettlement(input,file){return request('settlement_confirm',{settlement_id:input.id,account_id:input.accountId,confirmed_on:input.date,service_cents:A.amount(input.service||'0'),commission_cents:A.amount(input.commission||'0'),discount_cents:A.amount(input.discounts||'0'),adjustment_cents:A.amount(input.adjustment||'0'),received_cents:A.amount(input.received),reason:input.reason||''},input,file)},
     async addEntry(input,file){return request(input.direction==='in'?'income':'expense',{account_id:input.accountId,business_date:input.date,category:input.category,amount_cents:A.amount(input.amount),concept:input.concept,sale_id:input.saleId||null},input,file)},
     async transfer(input,file){return request('transfer',{from_account_id:input.fromId,to_account_id:input.toId,business_date:input.date,amount_cents:A.amount(input.amount),concept:input.concept},input,file)},
-    async prepareReconciliation(input,file){const ctx=context(),attachmentId=await attachment(file);check(ctx);const id=await rpc('finance_prepare_reconciliation',{p_key:key(input),p_payload:{account_id:input.accountId,as_of_date:input.date,observed_balance_cents:A.amount(input.observed),notes:input.notes||'',attachment_id:attachmentId}});await changed();return {id,pending:true}},
+    async prepareReconciliation(input,file){const ctx=context(),attachmentId=await attachment(file);check(ctx);const id=await rpc('finance_prepare_reconciliation',{p_key:key(input),p_payload:{account_id:input.accountId,as_of_date:input.date,observed_balance_cents:A.amount(input.observed),notes:input.notes||'',attachment_id:attachmentId}});await changed();return {id,pending:window.adminIdentity?.role!=='admin'}},
     async saleStatus(id,asOf=A.today()){const data=await rpc('finance_sale_status',{p_sale:id,p_as_of:asOf});return Object.fromEntries(Object.entries(data).map(([k,v])=>[k,number(v)]))},
     async accountLedger(id,from='2000-01-01',to=A.today()){const data=await rpc('finance_account_ledger',{p_account:id,p_from:from,p_to:to}),snapshot=await load();return {account:account(data.account),opening:number(data.opening),balance:number(data.balance),rows:data.rows.map(row=>entry(row,id=>snapshot.attachments.get(id)||null))}},
     async report(from,to){const data=await rpc('finance_report',{p_from:from,p_to:to});return Object.fromEntries(Object.entries(data).map(([currency,values])=>[currency,Object.fromEntries(Object.entries(values).map(([k,v])=>[k,number(v)]))]))}

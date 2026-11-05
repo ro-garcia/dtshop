@@ -17,7 +17,7 @@ const assert=require('node:assert/strict');
    try{await route.fulfill({body:await fs.readFile(path.join(__dirname,'..',u.pathname)),contentType:({'.html':'text/html','.js':'text/javascript','.css':'text/css'})[path.extname(u.pathname)]||'application/octet-stream'});}catch{await route.fulfill({status:404,body:''});}
   });
   await page.goto('https://catalog.example/admin.html');
-  async function login(email){await page.locator('#loginEmail').fill(email);await page.locator('#loginPassword').fill('test');await page.locator('.login-submit').click();await page.waitForFunction(()=>document.querySelector('#catalogLoadStatus').textContent.includes('Supabase:'));}
+  async function login(email){await page.locator('#loginEmail').fill(email);await page.locator('#loginPassword').fill('test');await page.locator('.login-submit').click();await page.waitForFunction(()=>document.querySelector('#catalogLoadStatus').textContent.includes('Catálogo:'));}
   await login('ops@example.com');
   await page.locator('[data-view="products"]').click();
   assert.match(await page.locator('#productTableBody').textContent(),/Camiseta remota/);

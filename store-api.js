@@ -1,7 +1,7 @@
 // Content and store preferences share the client initialized by admin-auth.js.
 window.storeApi = (() => {
   function db() {
-    if (!window.dirtytaskSupabase) throw new Error('Supabase no está configurado.');
+    if (!window.dirtytaskSupabase) throw new Error('La conexión de la tienda no está configurada.');
     return window.dirtytaskSupabase.schema('dtshop');
   }
   async function singleton(table, columns) {
@@ -23,7 +23,7 @@ window.storeApi = (() => {
   }
   async function rpc(name, args) {
     const {data, error} = await db().rpc(name, args);
-    if (error?.code === 'PGRST202') throw new Error('Falta ejecutar sql/store-integration.sql en Supabase.');
+    if (error?.code === 'PGRST202') throw new Error('Esta función no está disponible. Contacta al administrador.');
     if (error) throw error;
     return data;
   }

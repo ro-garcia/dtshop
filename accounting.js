@@ -8,7 +8,7 @@
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (cents, currency) => new Intl.NumberFormat('es-GT', { style: 'currency', currency }).format(cents / 100);
   const displayDate = value => new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value + 'T12:00:00Z'));
-  const canEdit=()=>window.adminIdentity?.role==='partner_finance';
+  const canEdit=()=>['partner_finance','admin'].includes(window.adminIdentity?.role);
   const knownBalance=(o,movements)=>o.knownBalance??A.balance(o,movements);
   const balancePending=(o,movements)=>o.balancePending??A.balanceUnconfirmed(o,movements);
   const button = (label, action, id = '', dark = false) => `<button type="button" class="admin-button ${dark ? 'admin-button-dark' : 'admin-button-quiet'}" data-acc-action="${action}" data-id="${escape(id)}"${['create','movement'].includes(action)&&!canEdit()?' disabled':''}>${label}</button>`;
@@ -134,7 +134,7 @@
         if(!result.pending)selected = kind === 'create' ? result.id : result.obligationId;
         bank = ''; snapshot = await repository.list(); modal.close(); render();
         document.dispatchEvent(new Event('cash:changed'));
-        message('Solicitud enviada. Se aplicará cuando la revise el otro socio.');
+        message(result.pending?'Solicitud enviada. Se aplicará cuando la revise el otro socio.':'Movimiento aplicado.');
       } catch (err) { if(window.adminIdentity?.id!==userId)return;error.textContent = err.message || 'No se pudo guardar. Intenta de nuevo.'; error.hidden = false; }
       finally { saving = false; controls.forEach(button => button.disabled = false); }
     });

@@ -1,6 +1,6 @@
 window.ordersApi = (() => {
   function db(){
-    if(!window.dirtytaskSupabase)throw new Error('Supabase no está configurado.');
+    if(!window.dirtytaskSupabase)throw new Error('La conexión de la tienda no está configurada.');
     return window.dirtytaskSupabase.schema('dtshop');
   }
   return Object.freeze({
@@ -15,7 +15,7 @@ window.ordersApi = (() => {
     },
     async transition(id,expected,status,note=''){
       const {error}=await db().rpc('transition_shop_order',{p_order:id,p_expected:expected,p_status:status,p_note:note});
-      if(error?.code==='PGRST202')throw new Error('Falta ejecutar sql/orders-integration.sql en Supabase.');
+      if(error?.code==='PGRST202')throw new Error('Esta función no está disponible. Contacta al administrador.');
       if(error)throw error;
     }
   });

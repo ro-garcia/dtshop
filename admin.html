@@ -45,7 +45,7 @@
         <button class="admin-button admin-button-dark login-submit" type="submit">Entrar al panel</button>
         <p class="login-error" id="loginError" role="alert" hidden></p>
       </form>
-      <div class="access-notice" id="accessNotice"><strong>Acceso de socios.</strong> Entra con tu cuenta de Supabase. El acceso está reservado a los socios de la tienda.</div>
+      <div class="access-notice" id="accessNotice"><strong>Acceso de administración.</strong> Entra con tu cuenta autorizada para administrar la tienda.</div>
       <a class="login-return" href="index.html">Volver a Dirtytask Store</a>
     </section>
     <p class="login-foot">DIRTYTASK CLOTHING STORE <span>·</span> GUATEMALA / 502</p>
@@ -167,7 +167,7 @@
             </div>
             <p class="field-hint">Este nombre y esta imagen identifican la sesión del panel en este navegador.</p>
           </form>
-          <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="0.01" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="0.01" required></span></label><p class="field-hint">Guarda las tarifas en Supabase con el botón Guardar cambios. El checkout público todavía requiere integración.</p></form>
+          <form class="admin-panel settings-form" id="shippingForm"><div class="panel-heading"><div><p class="admin-kicker">ENVÍOS / GUATEMALA</p><h3>Tarifas de entrega</h3></div></div><label>Departamento de Guatemala <span class="money-field">Q<input name="shippingGuatemala" type="number" min="0" step="0.01" required></span></label><label>Otros departamentos <span class="money-field">Q<input name="shippingOther" type="number" min="0" step="0.01" required></span></label><p class="field-hint">Las tarifas guardadas se aplican al calcular el envío de los pedidos.</p></form>
           <form class="admin-panel settings-form" id="paymentForm"><div class="panel-heading"><div><p class="admin-kicker">CHECKOUT / PAGO</p><h3>Métodos disponibles</h3></div></div><label class="toggle-row"><span><strong>Efectivo</strong><small>Pago contra entrega</small></span><input name="cash" type="checkbox"></label><label class="toggle-row"><span><strong>Visa cuotas</strong><small>3, 6, 9 o 12 cuotas</small></span><input name="visaInstallments" type="checkbox"></label><label class="toggle-row"><span><strong>Tarjeta de crédito</strong><small>Visalink</small></span><input name="visalink" type="checkbox"></label><p class="field-hint">Los métodos habilitados se muestran al completar el pedido.</p></form>
           <div class="admin-panel settings-meta"><div class="panel-heading"><div><p class="admin-kicker">TIENDA / IDENTIDAD</p><h3>Dirtytask Clothing Store</h3></div></div><p>Guatemala <span>GT / 502</span></p><p>Moneda <span>GTQ</span></p><p>Checkout <span>Pedidos en línea</span></p></div>
         </div>
