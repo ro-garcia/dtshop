@@ -31,6 +31,8 @@ El catálogo público usa un cliente anónimo separado de la sesión administrat
 
 ### Verificación del panel
 
+El admin utiliza Supabase Realtime para actualizar catálogo, lanzamientos, pedidos, resumen, estadísticas y contabilidad. Contenido y Configuración quedan excluidos. Ejecuta `sql/admin-realtime.sql` y consulta [la activación y prueba de Realtime](docs/admin-realtime.md). Las pruebas locales del coordinador se ejecutan con `node --test tests/admin-realtime.cjs tests/finance-realtime.cjs`.
+
 Con Node.js, `playwright` y Microsoft Edge disponibles, ejecuta `node tests/catalog-browser.cjs`, `node tests/store-browser.cjs` y `node tests/orders-browser.cjs`. Comprueban los flujos remotos con un cliente simulado. `node tests/supabase.cjs` ejecuta las migraciones y verifica permisos y transacciones con `@electric-sql/pglite`.
 
 ### Contabilidad

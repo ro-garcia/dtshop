@@ -14,7 +14,7 @@ window.Finance = (() => {
     if(error)throw error;return data;
   }
   async function load(force=false){
-    if(force&&cache){cache=null;dataVersion++;inflight=null;}
+    if(force){cache=null;dataVersion++;inflight=null;}
     if(cache)return cache;
     if(inflight)return inflight;
     const ctx=context(),version=dataVersion;
@@ -92,7 +92,17 @@ window.Finance = (() => {
     async addMovement(input,file){return request('obligation_movement',{obligation_id:input.obligationId,account_id:['payment','principal'].includes(input.type)?input.accountId:null,movement_type:input.type,business_date:input.date,period_month:input.type==='payment'?input.period+'-01':null,total_cents:input.type==='statement'?0:A.amount(input.total),principal_known:false,statement_balance_cents:input.statementBalance?.trim()?A.amount(input.statementBalance):null,notes:input.notes||''},input,file)}
   };
   document.addEventListener('dirtytask:auth',()=>{generation++;dataVersion++;cache=null;inflight=null;fileCache=new WeakMap()});
-  return Object.freeze({cash,obligations,load,async refresh(){const result=await load(true);document.dispatchEvent(new Event('finance:loaded'));return result},
+  return Object.freeze({cash,obligations,load,async refresh(realtime=null){
+    const ctx=context();
+    const result=await load(true);
+    if(realtime&&!realtime.canApply())return null;
+    const tasks=[];
+    document.dispatchEvent(new CustomEvent('finance:loaded',{detail:{realtime,tasks}}));
+    const applied=await Promise.all(tasks);
+    check(ctx);
+    if(realtime&&(!realtime.canApply()||applied.includes(false)))return null;
+    return result;
+  },
     async review(id,approve,note=''){await rpc('review_operation',{p_request:id,p_approve:approve,p_note:note});await changed()},
     async reviewReconciliation(id){await rpc('review_reconciliation',{p_id:id});await changed()},getAttachment});
 })();

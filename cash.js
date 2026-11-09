@@ -21,12 +21,13 @@
   const status = s => s.customerDue > 0 ? 'Por cobrar' : s.courierDue > 0 ? 'En mensajería' : 'Pagada';
   const panel = (title, content) => `<section class="admin-panel cash-panel"><h3>${title}</h3>${content}</section>`;
   const table = (headings, rows, empty = 'Sin movimientos en este período.') => `<div class="table-wrap paper-ledger"><table class="admin-table"><thead><tr>${headings.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('') || `<tr><td colspan="${headings.length}">${empty}</td></tr>`}</tbody></table></div>`;
-  async function render() {
+  async function render(realtime=null) {
     const version = ++renderVersion;
     const snapshot = await repo.list(); if (version !== renderVersion) return; data = snapshot;
-    accountId ||= data.accounts[0]?.id; saleId ||= data.sales[0]?.id;
+    if (!data.accounts.some(account => account.id === accountId)) accountId = data.accounts[0]?.id || '';
+    saleId ||= data.sales[0]?.id;
     const titles = { summary: ['Tu dinero, a la vista.', 'Resumen'], accounts: ['Cada cuenta, cada movimiento.', 'Cuentas y caja'], sales: ['Ventas, apartados y cobros.', 'Ventas y cobros'], courier: ['Del pedido al depósito.', 'Mensajería'], entries: ['Entradas y salidas bajo control.', 'Ingresos y gastos'] };
-    if (tab === 'debt' || tab === 'approvals') return;
+    if (tab === 'debt' || tab === 'approvals') return true;
     let body = '';
     if (tab === 'summary') {
       const report = await repo.report(from, to);
@@ -62,7 +63,11 @@
       body = `<div class="cash-toolbar">${btn('＋ Gasto', 'expense', '', true)}${btn('＋ Otro ingreso', 'income')}</div>` + dates() + '<p class="acc-help">Registra ventas desde Ventas y cobros. No vuelvas a ingresar aquí depósitos de liquidaciones ni cobros ya registrados.</p>' + table(['FECHA', 'CUENTA / CAJA', 'CONCEPTO', 'CATEGORÍA', 'ENTRADA', 'SALIDA', 'ADJUNTO'], entries.map(e => `<tr><td>${e.date}</td><td>${esc(accountName(e.accountId))}</td><td>${esc(e.concept)}</td><td>${esc(C.categories[e.category] || e.category)}</td><td>${e.direction === 'in' ? money(e.amount, e.currency) : '—'}</td><td>${e.direction === 'out' ? money(e.amount, e.currency) : '—'}</td><td>${receipt(e.attachment)}</td></tr>`));
     }
     if (version !== renderVersion) return;
+    if (realtime && !realtime.canApply()) return false;
+    const exportEntity = root.querySelector('#cashExportEntity')?.value;
     root.innerHTML = `<div class="view-intro"><div><p class="admin-kicker">CONTABILIDAD / ${titles[tab][1].toUpperCase()}</p><h1>${titles[tab][1]}<span>.</span></h1><p>${titles[tab][0]}</p></div></div>${body}<section class="admin-panel cash-export"><div><h3>Exportar para análisis</h3><p>Datos relacionados por identificadores, importes en centavos y monedas separadas.</p></div><div class="acc-actions">${btn('JSON completo', 'export-json')}<select id="cashExportEntity" aria-label="Entidad a exportar">${['accounts', 'sales', 'saleLines', 'receipts', 'settlements', 'settlementAllocations', 'entries', 'transfers', 'adjustments'].map((x, i) => `<option value="${x}">${['Cuentas', 'Ventas', 'Productos vendidos', 'Cobros', 'Liquidaciones', 'Pedidos por liquidación', 'Libro de cuentas', 'Transferencias', 'Ajustes'][i]}</option>`).join('')}</select>${btn('CSV', 'export-csv')}</div></section><p id="cashMessage" role="status"></p>`;
+    if(exportEntity)root.querySelector('#cashExportEntity').value=exportEntity;
+    return true;
   }
   async function accountCards() {
     const ledgers = await Promise.all(data.accounts.map(a => repo.accountLedger(a.id, from, to)));
@@ -163,7 +168,7 @@
     document.querySelector('#financeApprovalPanel').hidden = tab !== 'approvals';
   }
   nav.addEventListener('click', e => { const b = e.target.closest('[data-cash-tab]'); if (!b) return; tab = b.dataset.cashTab; syncNav(); refresh(); });
-  async function refresh() { if(!window.adminIdentity)return;const userId=window.adminIdentity.id;try { await render(); } catch (e) { if(window.adminIdentity?.id!==userId)return;const msg = root.querySelector('#cashMessage'); if (msg) msg.textContent = e.message; else root.textContent = e.message; } }
+  async function refresh(event) { if(!window.adminIdentity)return;const userId=window.adminIdentity.id,realtime=event?.detail?.realtime;try { return await render(realtime); } catch (e) { if(window.adminIdentity?.id!==userId||(realtime&&!realtime.isCurrent()))return;const msg = root.querySelector('#cashMessage'); if (msg) msg.textContent = e.message; else if(!realtime)root.textContent = e.message; if(realtime)throw e; } }
   root.addEventListener('change', e => { if (['cashFrom', 'cashTo'].includes(e.target.id)) { const nextFrom = root.querySelector('#cashFrom').value, nextTo = root.querySelector('#cashTo').value; if (nextFrom && nextTo && nextFrom <= nextTo && nextTo <= A.today()) { from = nextFrom; to = nextTo; refresh(); } else root.querySelector('#cashMessage').textContent = 'Selecciona un rango válido hasta hoy.'; } });
   const csv = rows => { const columns = [...new Set(rows.flatMap(Object.keys))]; const cell = v => { let s = typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v ?? ''); if (/^\s*[=+@-]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; }; return '\uFEFF' + [columns, ...rows.map(r => columns.map(k => r[k]))].map(r => r.map(cell).join(',')).join('\r\n'); };
   function download(content, name, type) { const url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
@@ -185,7 +190,7 @@
     } catch (err) { const message=root.querySelector('#cashMessage');if(message)message.textContent=err.message; }
   });
   document.addEventListener('cash:changed', refresh);
-  document.addEventListener('finance:loaded',refresh);
+  document.addEventListener('finance:loaded',event=>{const task=refresh(event);if(event.detail?.tasks)event.detail.tasks.push(task);});
   document.addEventListener('dirtytask:auth',event=>{renderVersion++;data=null;accountId='';saleId='';if(modal.open)modal.close();modal.replaceChildren();opener=null;root.replaceChildren();if(event.detail)refresh();});
   refresh();
 })();

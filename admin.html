@@ -16,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.js" defer></script>
   <script src="catalog-api.js" defer></script>
   <script src="store-api.js" defer></script>
+  <script src="admin-realtime.js" defer></script>
   <script src="admin.js" defer></script>
   <script src="orders-api.js" defer></script>
   <script src="orders.js" defer></script>
@@ -31,24 +32,24 @@
   <main class="login-screen" id="loginScreen">
     <a class="login-brand" href="index.html" aria-label="Dirtytask, volver a la tienda">
       <img src="assets/dirtytask-flame-d-transparent.png" alt="">
-      <span>DIRTYTASK<small>CONTROL DE TIENDA / GT</small></span>
+      <span>DIRTYTASK<small></small></span>
     </a>
     <section class="login-card" aria-labelledby="loginTitle">
-      <p class="admin-kicker"><i></i> PANEL DE ADMINISTRACIÓN</p>
-      <h1 id="loginTitle">Control de<br><em>la tienda.</em></h1>
-      <p class="login-copy">Administra catálogo, lanzamientos y contenido desde un solo lugar.</p>
+      
+      <h1 id="loginTitle">control de<br><em>la tienda.</em></h1>
+      <p class="login-copy">ADVERTENCIA: Este sitio es solo para administradores. Se prohibe el acceso al mismo.</p>
       <form id="loginForm">
         <label for="loginEmail">Correo electrónico</label>
-        <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="tu@correo.com" required>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="correo@correo.com" required>
         <label for="loginPassword">Contraseña</label>
-        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="contraseña" required>
         <button class="admin-button admin-button-dark login-submit" type="submit">Entrar al panel</button>
         <p class="login-error" id="loginError" role="alert" hidden></p>
       </form>
-      <div class="access-notice" id="accessNotice"><strong>Acceso de administración.</strong> Entra con tu cuenta autorizada para administrar la tienda.</div>
-      <a class="login-return" href="index.html">Volver a Dirtytask Store</a>
+      
+      <a class="login-return" href="index.html">VOLVER A LA TIENDA</a>
     </section>
-    <p class="login-foot">DIRTYTASK CLOTHING STORE <span>·</span> GUATEMALA / 502</p>
+    <p class="login-foot">DIRTYTASK CLOTHING STORE <span>·</span> Todos los derechos reservados® </p>
   </main>
 
   <div class="admin-layout" id="adminApp" hidden>
@@ -81,6 +82,7 @@
         <div class="topbar-actions"><button id="refreshCatalog" class="refresh-icon" type="button" title="Actualizar catálogo" aria-label="Actualizar catálogo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button><span class="local-state"><i></i> <span id="welcomeName">Bienvenido</span></span><button class="mobile-logout" id="mobileLogout" type="button">Salir</button><button class="avatar-button" id="accountAvatar" type="button" aria-label="Editar usuario">DT</button></div>
       </header>
       <p id="catalogLoadStatus" class="section-feedback" role="status"></p>
+      <p id="adminRealtimeStatus" class="section-feedback" role="status" hidden></p>
 
       <section class="admin-view" id="view-overview">
         <div class="welcome-row"><div><p class="admin-kicker">LUNES <span id="todayDate"></span> · GTQ</p><h1>BIENVENIDO DE NUEVO ,<br><em>A SEGUIR ROMPIENDOLA!</em></h1><p>Panel administrativo para la gestión de la tienda.</p></div><a class="admin-button admin-button-dark" href="index.html" target="_blank" rel="noopener">ver la tienda</a></div>
@@ -129,12 +131,12 @@
       </section>
 
       <section class="admin-view" id="view-drops" hidden>
-        <div class="view-intro"><div><p class="admin-kicker">RESERVAS / CALENDARIO</p><h1>Lanzamientos<span>.</span></h1><p>Gestiona las fechas de salida, llegada a Guatemala y modelos incluidos.</p></div><button class="admin-button admin-button-dark" id="addDropButton" type="button">＋ Nuevo lanzamiento</button></div>
+        <div class="view-intro"><div><p class="admin-kicker">RESERVAS / CALENDARIO</p><h1>Lanzamientos<span>.</span></h1><p>Gestiona las fechas de salida y llegada a Guatemala.</p></div><button class="admin-button admin-button-dark" id="addDropButton" type="button">＋ Agregar lanzamiento</button></div>
         <div class="drop-admin-list" id="dropAdminList"></div>
       </section>
 
       <section class="admin-view" id="view-orders" hidden>
-        <div class="view-intro"><div><p class="admin-kicker">VENTAS / RESERVAS</p><h1>Pedidos<span>.</span></h1><p>Revisa cada compra y coordina su entrega.</p></div><button id="refreshOrders" class="refresh-icon" type="button" title="Actualizar pedidos" aria-label="Actualizar pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button></div>
+        <div class="view-intro"><div><p class="admin-kicker">VENTAS / RESERVAS</p><h1>Pedidos<span>.</span></h1><p>Revisa cada compra y coordinar su entrega.</p></div><button id="refreshOrders" class="refresh-icon" type="button" title="Actualizar pedidos" aria-label="Actualizar pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg></button></div>
         <p id="ordersLoadStatus" class="section-feedback" role="status"></p>
         <div class="orders-summary"><article class="admin-panel"><span>POR CONFIRMAR</span><strong id="ordersPending">0</strong></article><article class="admin-panel"><span>EN PREPARACIÓN</span><strong id="ordersPreparing">0</strong></article><article class="admin-panel"><span>ENTREGADOS</span><strong id="ordersDelivered">0</strong></article></div>
         <div class="orders-toolbar"><label class="admin-search"><span aria-hidden="true">⌕</span><input id="ordersSearch" type="search" placeholder="Buscar cliente, teléfono o pedido" aria-label="Buscar pedidos"></label><label class="orders-filter"><span>Estado</span><select id="ordersStatusFilter"><option value="all">Todos</option><option value="pending">Por confirmar</option><option value="confirmed">Confirmados</option><option value="preparing">En preparación</option><option value="shipped">Enviados</option><option value="delivered">Entregados</option><option value="cancelled">Cancelados</option></select></label><span id="ordersResultCount" class="toolbar-count"></span></div>

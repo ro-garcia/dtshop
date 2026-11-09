@@ -5,7 +5,7 @@
   const names={name:'Nombre',account_type:'Tipo de cuenta',bank_name:'Banco',reference_last4:'Últimos dígitos',currency:'Moneda',opening_balance_cents:'Saldo inicial',opened_on:'Fecha inicial',reference:'Referencia',obligation_type:'Tipo de obligación',installment_cents:'Cuota mensual',due_day:'Día de pago',start_date:'Fecha inicial',sale_id:'Venta',account_id:'Cuenta',business_date:'Fecha',amount_cents:'Importe',category:'Categoría',concept:'Concepto',from_account_id:'Origen',to_account_id:'Destino',reason:'Motivo',obligation_id:'Obligación',movement_type:'Movimiento',period_month:'Período',total_cents:'Total',principal_known:'Capital desglosado',statement_balance_cents:'Saldo informado por el banco',notes:'Notas',courier:'Mensajería',settlement_id:'Liquidación',confirmed_on:'Fecha del depósito',service_cents:'Servicio retenido',commission_cents:'Comisión retenida',discount_cents:'Descuentos',adjustment_cents:'Ajuste positivo',received_cents:'Depósito recibido',attachment_id:'Comprobante',allocations:'Ventas incluidas',entry_id:'Movimiento original'};
   const valueLabels={bank:'Cuenta bancaria',cash:'Efectivo',loan:'Préstamo',financing:'Financiamiento',card:'Tarjeta',payment:'Cuota',principal:'Abono a capital',purchase:'Consumo',charge:'Cargo',statement:'Actualización de saldo'};
   const date=value=>new Intl.DateTimeFormat('es-GT',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Guatemala'}).format(new Date(value));
-  let snapshot=null,revision=0,busy=false,filter='pending';const notes=new Map();let objectUrl;
+  let snapshot=null,revision=0,busy=false,loading=false,filter='pending';const notes=new Map();let objectUrl;
   function money(value,currency){return new Intl.NumberFormat('es-GT',{style:'currency',currency:currency||'GTQ'}).format(Number(value)/100)}
   function render(){
     if(!snapshot){root.replaceChildren();document.querySelector('#financePendingCount').hidden=true;return;}
@@ -38,13 +38,25 @@
       return `<article class="finance-request" data-request="${esc(r.id)}"><header><div><h3>${esc(titles[r.operation]||r.operation)}</h3><p>${esc(person(r.requested_by))} · ${esc(date(r.created_at))}</p></div><span class="status-pill ${r.status==='approved'?'status-active':r.status==='rejected'?'status-archived':'status-draft'}">${state}</span></header><details ${canReview?'open':''}><summary>Ver importes y datos de la solicitud</summary><dl class="finance-payload">${Object.entries(payload).map(([k,v])=>`<div><dt>${esc(Object.hasOwn(names,k)?names[k]:k)}</dt><dd>${value(k,v)}</dd></div>`).join('')}</dl></details>${canReview?`<label>Nota de revisión <span>(obligatoria para rechazar)</span><textarea data-finance-note="${esc(r.id)}" maxlength="500">${esc(notes.get(r.id)||'')}</textarea></label><div class="acc-actions"><button class="admin-button admin-button-dark" type="button" data-finance-review="${esc(r.id)}" data-approve="true" ${busy?'disabled':''}>Aprobar y aplicar</button><button class="admin-button admin-button-quiet" type="button" data-finance-review="${esc(r.id)}" data-approve="false" ${busy?'disabled':''}>Rechazar</button></div>`:r.status==='pending'?'<p class="acc-help">Pendiente de la revisión del otro socio.</p>':`<p class="acc-help">${esc(person(r.reviewed_by))}${r.reviewed_at?' · '+esc(date(r.reviewed_at)):''} · ${esc(r.review_note||'Sin nota')}</p>`}</article>`;
     }).join('')||(visibleReconciliations.length?'':'<div class="finance-review-empty"><h3>'+({pending:'No hay solicitudes pendientes',mine:'Aún no has enviado solicitudes',history:'Sin solicitudes resueltas',all:'No hay solicitudes registradas'}[filter])+'</h3><p>Las solicitudes aparecerán aquí con su estado y los datos de revisión.</p></div>')}${visibleReconciliations.map(r=>`<article class="finance-request"><header><h3>Cuadre · ${esc(snapshot.cash.accounts.find(a=>a.id===r.account_id)?.name||r.account_id)}</h3><span class="status-pill ${r.reviewed_by?'status-active':'status-draft'}">${r.reviewed_by?'Verificado':'Pendiente'} · ${esc(r.as_of_date)}</span></header><p>Saldo del libro: ${esc(money(r.recorded_balance_cents,snapshot.cash.accounts.find(a=>a.id===r.account_id)?.currency))} · Observado: ${esc(money(r.observed_balance_cents,snapshot.cash.accounts.find(a=>a.id===r.account_id)?.currency))} · Diferencia: ${esc(money(r.difference_cents,snapshot.cash.accounts.find(a=>a.id===r.account_id)?.currency))}</p><p>${esc(r.notes||'')} · Preparado por ${esc(person(r.prepared_by))}</p><p class="acc-help">Revisar el cuadre cierra las fechas hasta ${esc(r.as_of_date)} para nuevos movimientos de esta cuenta.</p>${r.reviewed_by?`<p class="acc-help">Verificado por ${esc(person(r.reviewed_by))}${r.reviewed_at?' · '+esc(date(r.reviewed_at)):''}</p>`:(window.adminIdentity?.role==='admin'||r.prepared_by!==window.adminIdentity?.id)?`<button class="admin-button admin-button-dark" type="button" data-finance-reconcile="${esc(r.id)}" ${busy?'disabled':''}>Revisar y cerrar período</button>`:'<p class="acc-help">Pendiente del otro socio.</p>'}</article>`).join('')}</div>`;
   }
-  async function refresh(){
-    if(!window.adminIdentity||busy)return;
-    const ticket=++revision;refreshButton.disabled=true;status.dataset.state='quiet';status.textContent='Cargando contabilidad…';
-    try{const next=await window.Finance.refresh();if(ticket!==revision)return;snapshot=next;status.textContent='Contabilidad cargada.';render()}
-    catch(error){if(ticket===revision){status.dataset.state='error';status.textContent='No se pudo actualizar Contabilidad. Los datos visibles pueden ser anteriores. '+(error.message||'Reintenta.');}}
-    finally{if(ticket===revision)refreshButton.disabled=false;}
+  async function refresh(context){
+    const realtime=context?.canApply?context:null;
+    if(!window.adminIdentity||busy||loading){if(!realtime)window.adminRealtime?.request('finance');return false;}
+    const ticket=++revision;loading=true;refreshButton.disabled=true;
+    if(!realtime){status.dataset.state='quiet';status.textContent='Cargando contabilidad…';}
+    // Guard both the snapshot event and approvals after awaiting the server.
+    const guard=realtime?{isCurrent:realtime.isCurrent,canApply:()=>realtime.canApply()&&ticket===revision&&!busy}:null;
+    try{
+      const next=await window.Finance.refresh(guard);
+      if(ticket!==revision||!next||(guard&&!guard.canApply()))return false;
+      const expanded=new Map(Array.from(root.querySelectorAll('[data-request]')).map(item=>[item.dataset.request,item.querySelector('details')?.open]));
+      snapshot=next;status.dataset.state='quiet';status.textContent='Contabilidad cargada.';render();
+      if(realtime)root.querySelectorAll('[data-request]').forEach(item=>{const detail=item.querySelector('details');if(detail&&expanded.has(item.dataset.request))detail.open=expanded.get(item.dataset.request);});
+      return true;
+    }
+    catch(error){if(ticket===revision){status.dataset.state='error';status.textContent='No se pudo actualizar Contabilidad. Los datos visibles pueden ser anteriores. '+(error.message||'Reintenta.');}if(realtime)throw error;}
+    finally{if(ticket===revision){loading=false;refreshButton.disabled=false;}}
   }
+  window.adminRealtime?.register('finance',{blocked:()=>busy||loading,refresh});
   root.addEventListener('input',event=>{if(event.target.matches('[data-finance-note]'))notes.set(event.target.dataset.financeNote,event.target.value)});
   root.addEventListener('click',async event=>{
     const filterButton=event.target.closest('[data-finance-filter]');
@@ -60,6 +72,6 @@
   });
   refreshButton.addEventListener('click',refresh);
   document.addEventListener('finance:changed',refresh);
-  document.addEventListener('dirtytask:auth',event=>{revision++;busy=false;snapshot=null;filter='pending';notes.clear();if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}render();status.textContent='';refreshButton.disabled=!event.detail;if(event.detail)refresh()});
+  document.addEventListener('dirtytask:auth',event=>{revision++;busy=false;loading=false;snapshot=null;filter='pending';notes.clear();if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}render();status.textContent='';refreshButton.disabled=!event.detail;if(event.detail)refresh()});
   if(window.adminIdentity)refresh();
 })();

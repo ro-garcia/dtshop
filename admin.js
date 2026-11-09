@@ -3,6 +3,8 @@
   let catalogRequest = 0;
   let catalogReady = false;
   let catalogBusy = false;
+  let catalogLoading = 0;
+  let categoriesLoading = 0;
   let bannerDraft=null;
   let bannerRevision=0;
   let bannerPending=false;
@@ -189,6 +191,7 @@ async function loadRemoteCatalog() {
   const userId = window.adminIdentity?.id;
   if (!userId) return false;
   const ticket = ++catalogRequest;
+  catalogLoading++;
   catalogReady = false;
   $('#refreshCatalog').disabled = true;
   $('#catalogLoadStatus').textContent = 'Cargando catálogo…';
@@ -211,6 +214,7 @@ async function loadRemoteCatalog() {
     $('#catalogLoadStatus').dataset.state='error';
     return false;
   } finally {
+    catalogLoading--;
     if (ticket === catalogRequest) { $('#refreshCatalog').disabled = false; applyRoleControls(); }
   }
 }
@@ -221,6 +225,7 @@ async function loadRemoteCatalog() {
 
   async function loadCategories() {
     const ticket = ++categoriesRequest;
+    categoriesLoading++;
     categoriesReady = false;
     categoriesMessage = 'Cargando categorías…';
     updateCategoryField();
@@ -236,9 +241,30 @@ async function loadRemoteCatalog() {
       if (ticket !== categoriesRequest) return;
       categoryLabels = Object.create(null);
       categoriesMessage = 'No se pudieron cargar las categorías. Revisa la conexión y los permisos de dtshop.category.';
+    } finally {
+      categoriesLoading--;
     }
     updateCategoryField();
   }
+  window.adminRealtime?.register('catalog', {
+    blocked: () => catalogBusy || catalogLoading > 0 || categoriesLoading > 0,
+    async refresh(context) {
+      const ticket = catalogRequest, categoryTicket = categoriesRequest;
+      const [products, launches, categories] = await Promise.all([
+        window.catalogApi.listProducts(), window.catalogApi.listLaunches(), window.catalogApi.listCategories()
+      ]);
+      if (!context.canApply() || catalogBusy || ticket !== catalogRequest || categoryTicket !== categoriesRequest) return false;
+      const nextProducts = products.map(productFromDatabase), nextLaunches = launches.map(launchFromDatabase);
+      state.products = nextProducts; state.launches = nextLaunches;
+      categoryLabels = Object.fromEntries(categories.map(row => [row.code, row.label]));
+      categoriesReady = categories.length > 0; catalogReady = true;
+      renderProducts(); renderDrops(); renderOverview(); renderStatistics(); applyRoleControls();
+      $('#catalogLoadStatus').dataset.state = 'quiet';
+      $('#catalogLoadStatus').textContent = `Catálogo: ${products.length} productos y ${launches.length} lanzamientos.`;
+      document.dispatchEvent(new CustomEvent('dirtytask:admin-data-updated'));
+      return true;
+    }
+  });
   function updateCategoryField() {
     if (currentEditor?.type !== 'product') return;
     const select = editorForm.querySelector('[name="category"]');

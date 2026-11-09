@@ -34,6 +34,18 @@
     finally{if(ticket===revision){busy=false;render();}}
   }
   $('#refreshOrders').addEventListener('click',load);
+  window.adminRealtime?.register('orders', {
+    blocked:()=>busy || cancelling !== null,
+    async refresh(context){
+      const ticket=revision;
+      const next=await window.ordersApi.list();
+      if(!context.canApply()||ticket!==revision||busy||cancelling!==null)return false;
+      rows=next;ready=true;render();
+      $('#ordersLoadStatus').dataset.state='quiet';
+      $('#ordersLoadStatus').textContent='Pedidos cargados: '+rows.length+'.';
+      return true;
+    }
+  });
   $('#ordersStatusFilter').addEventListener('change',render);
   $('#ordersSearch').addEventListener('input',render);
   $('#ordersList').addEventListener('toggle',event=>{const id=event.target.dataset.orderDetail;if(id){if(event.target.open)openOrders.add(id);else openOrders.delete(id)}},true);

@@ -181,13 +181,14 @@
     } catch (error) { message(error.message || 'No se pudo completar la acción.', true); }
     finally { exportBusy = false; }
   });
-  async function refresh(){
+  async function refresh(event){
     if(!window.adminIdentity)return;
+    const realtime=event?.detail?.realtime;
     const ticket=++revision;
-    try{const [data,cash]=await Promise.all([repository.list(),window.cashRepository.list()]);if(ticket!==revision)return;cashAccountNames=new Map(cash.accounts.map(a=>[a.id,a.name]));snapshot=data;render();}
-    catch(error){if(ticket===revision)root.textContent=error.message||'No se pudo cargar Contabilidad.';}
+    try{const [data,cash]=await Promise.all([repository.list(),window.cashRepository.list()]);if(ticket!==revision)return;if(realtime&&!realtime.canApply())return false;cashAccountNames=new Map(cash.accounts.map(a=>[a.id,a.name]));snapshot=data;render();return true;}
+    catch(error){if(ticket===revision){if(realtime){message(error.message||'No se pudo actualizar Contabilidad.',true);throw error;}else root.textContent=error.message||'No se pudo cargar Contabilidad.';}}
   }
-  document.addEventListener('finance:loaded',refresh);
+  document.addEventListener('finance:loaded',event=>{const task=refresh(event);if(event.detail?.tasks)event.detail.tasks.push(task);});
   document.addEventListener('dirtytask:auth',event=>{revision++;snapshot={obligations:[],movements:[]};selected=null;bank='';cashAccountNames.clear();for(const url of objectUrls)URL.revokeObjectURL(url);objectUrls.clear();if(modal.open)modal.close();modal.replaceChildren();returnFocus=null;root.replaceChildren();if(event.detail)refresh();});
   refresh();
 })();
