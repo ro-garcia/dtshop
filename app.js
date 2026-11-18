@@ -26,7 +26,6 @@
   const sizeOptions = document.getElementById("sizeOptions");
   const addToBagButton = document.getElementById("addToBag");
   const dialogProductImage = document.getElementById("dialogProductImage");
-  const viewCaption = document.getElementById("viewCaption");
   const catalogViewButtons = Array.from(document.querySelectorAll("[data-catalog-view]"));
   const instagramTrack = document.getElementById("instagramTrack");
   const instagramPrev = document.getElementById("instagramPrev");
@@ -195,14 +194,12 @@
       const showLook = activeCatalogView === "look" && Boolean(product.lookImage);
       const image = card.querySelector(".product-photo img, .editorial-product-photo img");
       const photoButton = card.querySelector(".product-photo, .editorial-product-photo");
-      const index = card.querySelector(".photo-index, .editorial-view-index");
       if (!image || !photoButton) return;
       image.src = showLook ? product.lookImage : product.image;
       image.alt = showLook ? product.lookAlt : "Foto de producto: " + product.name;
       photoButton.classList.toggle("photo-product", !showLook);
       photoButton.classList.toggle("photo-look", showLook);
       photoButton.setAttribute("aria-label", showLook ? "Ver look para " + product.name : "Ver " + product.name);
-      if (index) index.textContent = showLook ? "LOOK / " + String(card.dataset.order).padStart(2, "0") : "A / " + String(card.dataset.order).padStart(2, "0");
     });
     catalogViewButtons.forEach((button) => {
       const selected = button.dataset.catalogView === activeCatalogView;
@@ -301,8 +298,6 @@
     const showLook = activeCatalogView === "look" && Boolean(product.lookImage);
     dialogProductImage.src = showLook ? product.lookImage : product.image;
     dialogProductImage.alt = showLook ? product.lookAlt : "Foto de producto de Dirtytask: " + product.name;
-    viewCaption.textContent = showLook ? "LOOK / ESTILISMO" : "PRODUCT / FOTO DE LA PIEZA";
-    document.getElementById("productNote").textContent = "Consulta disponibilidad, tallas y entrega con Dirtytask por Instagram.";
   }
   document.querySelectorAll("[data-open-product]").forEach((button) => button.addEventListener("click", () => openProduct(button.dataset.openProduct)));
   document.querySelector("[data-close-product]").addEventListener("click", () => productDialog.close());
@@ -418,7 +413,7 @@
     }
     document.getElementById('productGrid').innerHTML = published.map((product,index) =>
       '<article class="product-card" data-product-id="' + safeText(product.id) + '" data-category="' + safeText(product.categoryCode) + '" data-search="' + safeText(product.name+' '+product.category) + '" data-price="' + product.price + '" data-order="' + index + '">' +
-      '<button class="product-photo photo-product" type="button" data-open-product="' + safeText(product.id) + '" aria-label="Ver ' + safeText(product.name) + '">' + photo(product) + '<span class="photo-index">A / '+String(index+1).padStart(2,'0')+'</span></button>' +
+      '<button class="product-photo photo-product" type="button" data-open-product="' + safeText(product.id) + '" aria-label="Ver ' + safeText(product.name) + '">' + photo(product) + '</button>' +
       '<div class="product-meta"><span>'+safeText(product.category)+'</span><span>'+(product.preorder?'PREVENTA':product.stock?'DISPONIBLE':'AGOTADO')+'</span></div>' +
       '<div class="product-title-row"><h3>'+safeText(product.name)+'</h3><span>'+safeText(money(product.price))+'</span></div>'+
       '<button class="quick-add" type="button" data-open-product="'+safeText(product.id)+'">Ver pieza <span>+</span></button></article>').join('');
